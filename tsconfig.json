@@ -19,6 +19,6 @@
     "allowJs": false,
     "noEmit": true
   },
-  "include": ["src", "tests", "scripts/*.d.ts", "vite.config.ts", "playwright.config.ts"],
+  "include": ["src", "dev", "tests", "vite.config.ts", "playwright.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

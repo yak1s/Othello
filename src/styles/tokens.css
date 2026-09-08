@@ -39,7 +39,7 @@
   --frame-edge: #8D8276;   /* the case's lit outer keyline, Lc 35.5 on ink */
   --disc-rim-dark:  #B4AFA4;  /* dark disc's lower-light rim; carries its silhouette */
   --disc-rim-light: #BDB4A0;  /* light disc's shaded rim */
-  --press:      #CFC6B0;   /* = --card-edge; paper pressed */
+  --press:      #D4CCB7;   /* paper pressed: the darkest tone that keeps its label at Lc 75 */
   --disabled:   #9A978E;   /* card @63% over ink — Lc 45.2: unavailable, but still readable */
 
   /* ── Elevation. Three levels. There is no fourth. ───────────────────── */
@@ -98,7 +98,7 @@
   /* ── Board internals ────────────────────────────────────────────────── */
   --disc-inset: 4px;        /* felt visible around each disc */
   --dot-size: 6px;          /* legal-move dot */
-  --dot-alpha: .32;
+  --dot-alpha: .46;         /* solved: the least that clears Lc 30 on every felt */
   --ghost-alpha: .22;
   --grain-alpha: .04;       /* felt texture ceiling, per brief */
 }

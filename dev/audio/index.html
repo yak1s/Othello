@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kissa — audio tuner</title>
+<link rel="stylesheet" href="/src/styles/index.css">
+<style>
+  /* A development tool, but it obeys the same design law as the app. */
+  body { padding: var(--s6) var(--s4) var(--s16); }
+  .tuner { max-width: 720px; margin: 0 auto; }
+  .tuner__lede { color: var(--text-quiet); margin: var(--s2) 0 var(--s6); }
+  .voice { border-top: var(--hair) solid var(--rule); padding: var(--s4) 0; }
+  .voice__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+  .voice__name { font-size: var(--fs-17); font-weight: 500; }
+  .voice__params { display: grid; grid-template-columns: 1fr auto auto; gap: var(--s2) var(--s3); margin-top: var(--s3); align-items: center; }
+  .voice__param { font-size: var(--fs-13); color: var(--text-quiet); }
+  .voice__value { font-size: var(--fs-13); font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
+  .tuner input[type='range']::-webkit-slider-runnable-track { background: var(--rule); }
+  .tuner input[type='range']::-moz-range-track { background: var(--rule); }
+  .tuner input[type='range']::-webkit-slider-thumb { background: var(--bone); box-shadow: inset 0 -1px 0 var(--disc-rim-light); }
+  .tuner input[type='range']::-moz-range-thumb { background: var(--bone); box-shadow: inset 0 -1px 0 var(--disc-rim-light); }
+  .dump { width: 100%; min-height: 220px; margin-top: var(--s4); padding: var(--s3); background: var(--card); color: var(--ink); border: 0; border-radius: var(--r-none); font-family: var(--f-body); font-size: var(--fs-13); }
+</style>
+</head>
+<body>
+<main class="tuner" id="tuner"></main>
+<script type="module" src="/dev/audio/tuner.ts"></script>
+</body>
+</html>

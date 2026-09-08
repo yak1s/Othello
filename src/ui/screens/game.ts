@@ -7,6 +7,7 @@
 import { BoardView, nameOf } from '../board';
 import { el, ms, on, tweenInt } from '../dom';
 import type { LiveRegion, SheetHost, Toast } from '../chrome';
+import type { Sound } from '../../audio';
 import {
   apply, canUndo, games, legalMoves, outcome, play, positionAt, rules, score, undo,
 } from '../../engine';
@@ -33,6 +34,7 @@ export interface GameScreenHost {
   live: LiveRegion;
   toast: Toast;
   sheets: SheetHost;
+  sound: Sound;
   settings: () => Settings;
   onExit(): void;
   onFinished(game: Game, opponent: Opponent): void;
@@ -69,7 +71,7 @@ export class GameScreen {
   constructor(private readonly host: GameScreenHost) {
     this.board = new BoardView({
       onCommit: (square) => void this.commit(square),
-      onIllegal: (square) => this.board.illegal(square),
+      onIllegal: (square) => { this.board.illegal(square); this.host.sound.illegal(); },
       flipsFor: (square) => this.flipsFor(square),
       describe: (square) => this.describe(square),
       onAnnounceScore: () => this.announceScore(),
@@ -175,6 +177,18 @@ export class GameScreen {
     setTimeout(() => this.tweenScore(after.black, after.white),
       this.board.waveMidpoint(result.flipped.length));
 
+    // The disc lands, then the wave: the sound follows the animation's own
+    // stagger, so a click arrives with each disc rather than all at once.
+    this.host.sound.place();
+    const chebyshev = (i: number): number => {
+      const target = result.flipped[i]!;
+      return Math.max(
+        Math.abs((target % 8) - (square % 8)),
+        Math.abs(Math.floor(target / 8) - Math.floor(square / 8)),
+      );
+    };
+    this.host.sound.flipWave(result.flipped.length, ms('--t-stagger'), chebyshev);
+
     await this.board.play(square, mover, result.flipped);
 
     this.narrate(mover, square, result.flipped.length, result.passedBy);
@@ -213,6 +227,7 @@ export class GameScreen {
     const result = outcome(this.game.position, this.opponent.variant, settings.scoreMode);
     if (!result) return;
     this.board.finish(result.kind === 'win' ? result.winner : null);
+    this.host.sound.play('end');
     this.refresh();
     this.host.onFinished(this.game, this.opponent);
 
@@ -240,6 +255,7 @@ export class GameScreen {
     if (passedBy !== undefined && !rules.isTerminal(this.game.position)) {
       line += ` ${colorWord(passedBy)} has no move.`;
       this.showPass(passedBy);
+      this.host.sound.play('pass');
     }
     this.announce(line);
   }

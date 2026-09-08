@@ -1,0 +1,27 @@
+{
+  "id": "/kissa/",
+  "name": "Kissa — Reversi",
+  "short_name": "Kissa",
+  "description": "Reversi for two, or one. Plays offline, installs to the home screen, and needs no account.",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#24493F",
+  "background_color": "#16171A",
+  "categories": ["games", "board"],
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "./screenshots/phone.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "A game in progress" },
+    { "src": "./screenshots/wide.png", "sizes": "1280x800", "type": "image/png", "form_factor": "wide", "label": "A game in progress on a wide screen" }
+  ],
+  "shortcuts": [
+    { "name": "Play the computer", "short_name": "Computer", "url": "./?play=computer", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Pass & play", "short_name": "Pass & play", "url": "./?play=pass", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

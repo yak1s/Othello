@@ -405,3 +405,18 @@ reason that forced it.
 - **C16 — The range input is rebuilt from the app's own vocabulary.** Every browser renders it in a
   saturated blue, which is not a colour this app has. It is now a paper track and an ink disc, the
   same two shapes as the switch.
+- **C17 — The last-move marker is `--brass-lit` at full strength.** Specified as `--brass`, it
+  measured Lc 22.1 against baize before any transparency; at the 55% it was drawn with, 9.9. The
+  marker is information — it is toggleable and it tells you where the last disc landed — so it has
+  to clear the 30 floor. `--brass-lit` reaches 31.6–39.6 across all three felts and their alternate
+  squares, and at one hairline it stays as quiet as intended.
+- **C18 — The legal-move dot is 46%, and the ghost disc has a rim.** Both were specified as flat
+  transparencies over felt and both measured under the floor: the dot at the specified 32% is
+  Lc 19.8–21.0, and a dark ghost at 22% is Lc **0.0** — literally invisible on green. 46% is the
+  least that puts the dot over 30 on every felt. The ghost cannot be solved that way at all, because
+  ink on baize is only 16.7 even at full opacity, so it gets the same rim that carries a real disc's
+  silhouette (C6) and keeps its 22% fill.
+- **C19 — The pressed paper tone is `#D4CCB7`, not `--card-edge`.** Reusing the hairline colour as
+  the pressed fill dropped the button's own label to Lc 72.1, under the 75 body target, for as long
+  as a finger was down. `#D4CCB7` is the darkest press that keeps the label at 75.3 and is still
+  clearly a press.

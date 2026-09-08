@@ -6,6 +6,7 @@
 
 import { el, ms, on } from './dom';
 import { LiveRegion, SheetHost, Toast } from './chrome';
+import { Sound } from '../audio';
 import { GameScreen, danger, primary, passAndPlay, secondary, type Opponent } from './screens/game';
 import { HomeScreen } from './screens/home';
 import { settingsSheet } from './screens/settings';
@@ -25,6 +26,7 @@ export class App {
   private readonly live = new LiveRegion();
   private readonly toast = new Toast();
   private readonly sheets = new SheetHost();
+  private readonly sound = new Sound();
   private readonly home: HomeScreen;
   private readonly game: GameScreen;
 
@@ -49,6 +51,7 @@ export class App {
       live: this.live,
       toast: this.toast,
       sheets: this.sheets,
+      sound: this.sound,
       settings: () => this.settings.value,
       onExit: () => this.go('home'),
       onFinished: (finished, opponent) => this.onFinished(finished, opponent),
@@ -62,8 +65,13 @@ export class App {
     ]);
 
     applyDocumentSettings(this.settings.value);
+    this.sound.apply(this.settings.value);
+    // The context is constructed on the first gesture and never before: iOS
+    // will otherwise stay silent for the rest of the session.
+    this.sound.attachUnlock();
     this.settings.subscribe((next) => {
       applyDocumentSettings(next);
+      this.sound.apply(next);
       this.game.applySettings(next);
     });
 
@@ -71,6 +79,7 @@ export class App {
     this.go('home');
     this.home.setResume(loadSavedGame());
     this.handleDeepLink();
+    this.handleShortcut();
   }
 
   /* ── routing ─────────────────────────────────────────────────────────── */
@@ -282,6 +291,16 @@ export class App {
     await event.prompt();
     this.settings.set('installPromptDismissed', true);
     this.home.setInstallOffer(false);
+  }
+
+  /** The manifest's two shortcuts land here, as ?play=computer or ?play=pass. */
+  private handleShortcut(): void {
+    const play = new URLSearchParams(location.search).get('play');
+    if (play !== 'computer' && play !== 'pass') return;
+    // Strip it so a reload does not restart the game behind the person's back.
+    history.replaceState(null, '', location.pathname);
+    if (play === 'pass') this.startGame(passAndPlay(this.settings.get('lastVariant')));
+    else this.openComputerSheet();
   }
 
   private handleDeepLink(): void {

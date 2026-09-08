@@ -56,8 +56,12 @@ export const lc = (txt, bg) => Math.abs(apca(txt, bg));
 
 /** Parse `--name: #hex;` declarations out of a CSS file, resolving one level of var(). */
 export function parseTokens(css) {
+  // Comments first: this file's own prose mentions tokens by name, and a
+  // sentence like "--lacquer measures Lc 0.0 against --ink: ..." otherwise
+  // parses as a declaration and silently overwrites the real value.
+  const source = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const raw = {};
-  for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) raw[m[1]] = m[2].trim();
+  for (const m of source.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) raw[m[1]] = m[2].trim();
   const out = {};
   for (const [k, v] of Object.entries(raw)) {
     const ref = v.match(/^var\((--[\w-]+)\)$/);
