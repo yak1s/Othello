@@ -1,0 +1,296 @@
+/* ============================================================================
+   Screens. Placement follows brief §5 exactly: the board is the hero, it never
+   scrolls, never resizes mid-game, and nothing ever covers it.
+   ========================================================================= */
+
+.screen { display: none; }
+.screen.is-current { display: grid; }
+
+/* Home ↔ game is a cross-fade with the board scaling 0.98→1. Nothing slides. */
+.screen.is-entering { animation: screen-in var(--t-screen) var(--e-out); }
+@keyframes screen-in { from { opacity: 0; } to { opacity: 1; } }
+.screen.is-entering .board { animation: board-in var(--t-screen) var(--e-out); }
+@keyframes board-in { from { transform: scale(.98); } to { transform: scale(1); } }
+:root[data-motion='reduced'] .screen.is-entering .board { animation: none; }
+
+/* ── Home ────────────────────────────────────────────────────────────────── */
+
+.home {
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s8);
+  padding: var(--s8) var(--s4) var(--s6);
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+}
+.home__title { color: var(--text); }
+.home__lede { color: var(--text-quiet); margin-top: var(--s2); }
+.home__menu { align-self: start; }
+.home__menu .row:first-child { border-top: var(--hair) solid var(--rule); }
+.home__foot { display: flex; gap: var(--s6); align-items: center; }
+
+.home__link {
+  font-size: var(--fs-13);
+  color: var(--text-quiet);
+  text-decoration: none;
+  border-bottom: var(--hair) solid transparent;
+  padding-bottom: 1px;
+}
+@media (hover: hover) { .home__link:hover { color: var(--text); border-bottom-color: var(--rule); } }
+.home__link:active { color: var(--text); }
+
+/* The resume slip: a printed card, not a rounded tile. */
+.resume {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: var(--s3);
+  align-items: center;
+  width: 100%;
+  padding: var(--s3);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--r-none);
+  box-shadow: var(--e1);
+  text-align: left;
+}
+.resume:active { background: var(--press); }
+.resume__thumb { width: 44px; height: 44px; display: block; }
+.resume__line { display: flex; align-items: baseline; gap: var(--s2); }
+.resume__count { font-family: var(--f-display); font-weight: 700; font-variant-numeric: tabular-nums; }
+.resume__state { font-size: var(--fs-13); color: var(--lacquer); }
+.resume__go { font-size: var(--fs-17); font-weight: 500; margin-top: 2px; }
+
+/* The install line: one dismissible row after a finished game, never a modal. */
+.install {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  font-size: var(--fs-13);
+  color: var(--text-quiet);
+}
+
+/* ── Game ────────────────────────────────────────────────────────────────── */
+
+.game {
+  grid-template-rows: var(--topbar-h) auto 1fr var(--thumb-h);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  height: var(--topbar-h);
+}
+.topbar__back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: var(--topbar-h);
+  color: var(--text-quiet);
+}
+@media (hover: hover) { .topbar__back:hover { color: var(--text); } }
+.topbar__label { text-align: center; font-size: var(--fs-13); color: var(--text-quiet); }
+
+.strip {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s2);
+  height: var(--strip-h);
+  padding: 0 var(--s3);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--r-none);
+  box-shadow: var(--e1);
+}
+.strip__side { display: flex; align-items: center; }
+.strip__side--right { justify-content: flex-end; }
+.strip__score {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--fs-22);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The single turn indicator. It slides; nothing else marks whose turn it is
+   except the words in the status line. DESIGN.md correction C9. */
+.strip__turn {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 72px;
+  height: 2px;
+  background: var(--brass);
+  transform: translateX(var(--turn-x, 0));
+  transition: transform var(--t-turn) var(--e-out);
+}
+:root[data-motion='reduced'] .strip__turn { transition: none; }
+
+.stage {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--s4);
+  min-height: 0;
+  /* Optically centred: the board and its line sit 16px above true centre, so
+     the thumb bar does not crowd them. DESIGN.md §7. */
+  padding-bottom: var(--s8);
+}
+
+/* The turn line belongs to the board, not to the bottom of the screen. */
+.status {
+  white-space: nowrap;
+  color: var(--text-quiet);
+}
+
+.thumbbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: var(--thumb-h);
+  border-top: var(--hair) solid var(--rule);
+}
+.thumbbar__slot {
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-13);
+  color: var(--text);
+  border-radius: var(--r-none);
+}
+@media (hover: hover) { .thumbbar__slot:hover:not(:disabled) { background: rgb(122 120 114 / .12); } }
+.thumbbar__slot:active:not(:disabled) { background: rgb(122 120 114 / .24); }
+/* Disabled, never hidden: hiding a control shifts the layout between modes. And
+   it stays tappable, because the tap is how the reason gets told (brief §5.2). */
+.thumbbar__slot[aria-disabled='true'] { color: var(--disabled); }
+.thumbbar__slot[aria-disabled='true']:active { background: rgb(122 120 114 / .12); }
+.chit-host { position: absolute; left: 50%; top: var(--s3); transform: translateX(-50%); z-index: 1; }
+
+/* ── Sheets ──────────────────────────────────────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--ink);
+  opacity: 0;
+  transition: opacity var(--t-screen) var(--e-out);
+}
+.backdrop.is-open { opacity: .92; }
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 82dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s3) var(--s4) calc(var(--s6) + env(safe-area-inset-bottom));
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--r-none);
+  box-shadow: var(--e2);
+  transform: translateY(100%);
+  transition: transform var(--t-screen) var(--e-out);
+}
+.sheet.is-open { transform: translateY(0); }
+:root[data-motion='reduced'] .sheet { transition: none; transform: none; display: none; }
+:root[data-motion='reduced'] .sheet.is-open { display: block; }
+
+.sheet__handle {
+  width: 32px;
+  height: 3px;
+  margin: 0 auto var(--s4);
+  background: var(--card-edge);
+}
+.sheet__title { font-family: var(--f-display); font-weight: 700; font-size: var(--fs-34); line-height: var(--lh-display); }
+.sheet__body { margin-top: var(--s3); }
+.sheet__actions { display: grid; gap: var(--s2); margin-top: var(--s6); }
+
+.sheet .btn--primary { width: 100%; }
+.sheet .btn--secondary { width: 100%; color: var(--ink); border-color: var(--card-edge); }
+@media (hover: hover) { .sheet .btn--secondary:hover { border-color: var(--lacquer); } }
+
+/* Destructive lives inside a sheet, on paper, behind a confirm. --shu on --ink
+   measures Lc 17.8, so it is a rule here and never a label on the dark ground. */
+.btn--danger {
+  width: 100%;
+  justify-content: flex-start;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  border-radius: var(--r-none);
+  border-left: 2px solid var(--shu);
+  padding-left: var(--s3);
+}
+.btn--danger:active { background: rgb(155 58 46 / .12); }
+
+/* Rows inside a sheet sit on paper, so they use the paper hairline. */
+.sheet .row { border-bottom-color: var(--card-edge); }
+@media (hover: hover) { .sheet .row:hover:not(:disabled) { background: rgb(59 42 34 / .06); } }
+.sheet .row:active:not(:disabled) { background: rgb(59 42 34 / .12); }
+
+/* ── Move list ───────────────────────────────────────────────────────────── */
+
+.moves { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: var(--s1); }
+.moves__item {
+  display: flex;
+  gap: var(--s1);
+  align-items: baseline;
+  padding: var(--s1) var(--s2);
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--r-none);
+  text-align: left;
+}
+.moves__item[aria-current='true'] { background: var(--press); }
+.moves__ply { color: var(--lacquer); }
+.moves__pass { color: var(--lacquer); font-style: italic; }
+
+/* ── Toast: one at a time, above the thumb bar, never for what was just seen. ─ */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--thumb-h) + var(--s3) + env(safe-area-inset-bottom));
+  transform: translate(-50%, 8px);
+  opacity: 0;
+  transition: opacity var(--t-screen) var(--e-out), transform var(--t-screen) var(--e-out);
+  pointer-events: none;
+  z-index: 2;
+}
+.toast.is-open { opacity: 1; transform: translate(-50%, 0); }
+:root[data-motion='reduced'] .toast { transition: opacity var(--t-reduced) linear; transform: translate(-50%, 0); }
+
+/* ── Landscape and tablet: board left, score and moves right. The frame keeps
+      its square and its max size; it is never stretched to fill. ─────────── */
+
+@media (min-width: 900px) {
+  .game {
+    grid-template-columns: 1fr minmax(280px, 360px);
+    grid-template-rows: var(--topbar-h) 1fr;
+    column-gap: var(--s8);
+    padding: 0 var(--s6);
+  }
+  .topbar { grid-column: 1 / -1; }
+  .stage { grid-column: 1; grid-row: 2; }
+  .side { grid-column: 2; grid-row: 2; display: grid; align-content: start; gap: var(--s4); padding-top: var(--s4); }
+  .thumbbar { grid-column: 1 / -1; }
+  .board { --board-avail-h: calc(100dvh - var(--topbar-h) - var(--thumb-h) - var(--s16)); }
+}
+@media (max-width: 899px) { .side { display: none; } }
+
+/* The update notice: one quiet chit, never an auto-reload mid-game. */
+.update-chit {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--s4) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: var(--s1);
+  z-index: 3;
+}
+.update-chit .home__link { color: var(--lacquer); border-bottom-color: var(--card-edge); }

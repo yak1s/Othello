@@ -79,12 +79,13 @@
   display: grid;
   place-items: center;
   padding: 0;
-  background: var(--felt);
+  /* Transparent: the felt is painted by .cell__inner, which is exactly one cell.
+     The button itself is allowed to overhang the frame for the hit area, and if
+     it painted, that overhang would cover the lacquer. Correction C14. */
+  background: none;
   border-radius: var(--r-none);
-  /* Cells are contiguous: no gutters means no dead space to mis-aim into. */
   outline-offset: -2px;
 }
-.cell.is-alt { background: var(--felt-deep); }
 /* The outer ring extends under the lacquer frame, so the cells where aiming is
    worst and the stakes are highest get 14px more target. DESIGN.md §7. */
 .cell[data-file='0'] { margin-left: calc(-1 * var(--frame-w)); padding-left: var(--frame-w); }
@@ -98,7 +99,9 @@
   height: var(--cell);
   display: grid;
   place-items: center;
+  background: var(--felt);
 }
+.cell.is-alt .cell__inner { background: var(--felt-deep); }
 
 /* Static dots. They do not pulse, breathe, or animate in any way. */
 .cell__dot {

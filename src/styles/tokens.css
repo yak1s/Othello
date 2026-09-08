@@ -14,13 +14,16 @@
 
   /* ── Felt (three choices; --felt/--felt-deep are what components read) ── */
   --baize:      #2F5D50;
-  --baize-deep: #24493F;
+  --baize-deep: #24493F;   /* the deep felt of the palette; also the theme colour */
   --slate:      #3A424B;
-  --slate-deep: #323942;
   --sand:       #5E5540;
-  --sand-deep:  #554D3A;
+  /* The alternate-square tint is 3% off its felt, per the brief's own note — a
+     weave difference in raking light, not a chessboard. Correction C13. */
+  --baize-alt:  #2E5A4E;
+  --slate-alt:  #384049;
+  --sand-alt:   #5B523E;
   --felt:       var(--baize);
-  --felt-deep:  var(--baize-deep);
+  --felt-deep:  var(--baize-alt);
 
   /* ── Pieces and accents ─────────────────────────────────────────────── */
   --bone:       #F2EDE1;   /* the light discs */
@@ -93,7 +96,7 @@
   --focus-offset: 2px;
 
   /* ── Board internals ────────────────────────────────────────────────── */
-  --disc-inset: 3px;        /* felt visible around each disc */
+  --disc-inset: 4px;        /* felt visible around each disc */
   --dot-size: 6px;          /* legal-move dot */
   --dot-alpha: .32;
   --ghost-alpha: .22;
@@ -101,8 +104,8 @@
 }
 
 /* Felt choices swap only the two felt tokens. Nothing else changes. */
-:root[data-felt='slate'] { --felt: var(--slate); --felt-deep: var(--slate-deep); }
-:root[data-felt='sand']  { --felt: var(--sand);  --felt-deep: var(--sand-deep); }
+:root[data-felt='slate'] { --felt: var(--slate); --felt-deep: var(--slate-alt); }
+:root[data-felt='sand']  { --felt: var(--sand);  --felt-deep: var(--sand-alt); }
 
 /* Reduced motion collapses the spec to its no-rotation, no-stagger equivalent.
    Feedback is never removed — only its mechanism changes. See DESIGN.md §Motion. */

@@ -375,3 +375,33 @@ reason that forced it.
   `/fonts/` path and break a sub-path deployment. Work Sans is a variable file that Google serves
   once per requested weight, so it ships once under a `font-weight: 400 500` range — 58.6 KB total
   for both families against a 180 KB budget.
+- **C11 — The flip axis is the capture direction itself.** Brief §9 says a disc rotates "about the
+  axis perpendicular to its capture direction, so a horizontal capture rolls vertically". Those two
+  clauses describe opposite rotations: rotating about the axis *perpendicular* to a horizontal
+  capture is `rotateY`, which rolls the disc sideways like a door. The stated visual — rolling
+  vertically — is `rotateX`, whose axis is *parallel* to the capture direction. The visual is the
+  checkable half and the one that reads as a wave, so it wins: the transform is
+  `rotate3d(dx, dy, 0, 180deg)` where `(dx, dy)` is the capture direction, which gives a horizontal
+  capture a vertical roll, a vertical capture a horizontal roll, and a diagonal capture a roll about
+  its own diagonal.
+- **C12 — Both disc faces are pre-rotated about the axis the flip will use.** A disc's rim is on its
+  lower edge, so a disc that lands at `rotateX(180deg)` would show its rim at the top. Pre-rotating
+  the back face about the same axis makes the composed transform the identity, so the disc lands
+  upright with its rim at the bottom whichever way it rolled, and the landing needs no repaint.
+- **C13 — The alternate-square tint is 3% off its felt, not 21%.** The brief's own note says
+  "+/- 3% only", but the two hexes it gives (`#2F5D50` and `#24493F`) differ by about 21% per
+  channel, which renders as an unmistakable chessboard — and an Othello board is not a chessboard.
+  `--baize-deep` stays in the palette as the deep felt and as the manifest's theme colour; the
+  square tint is a separate `--baize-alt` at a true 3%, with matching `--slate-alt` and `--sand-alt`.
+  (APCA reports Lc 0.0 for the original pair, which is its low-contrast clamp rather than a claim
+  that they look alike — a reminder that Lc answers "is this legible", not "is this visible".)
+- **C14 — A cell's hit area may overhang the lacquer frame; its paint may not.** The outer ring of
+  cells extends under the frame so the highest-stakes squares get a bigger target (DESIGN.md §7).
+  When the button itself carried the felt background, that overhang painted over the frame and the
+  board lost its case entirely. The felt is painted by `.cell__inner`, which is exactly one cell.
+- **C15 — The score appears once.** The strip showed the count on each capsule *and* in the centre:
+  the same two numbers, three times. The capsules carry the disc mark and the player's name; the
+  centre carries the score, as in the brief's §5.2 diagram.
+- **C16 — The range input is rebuilt from the app's own vocabulary.** Every browser renders it in a
+  saturated blue, which is not a colour this app has. It is now a paper track and an ink disc, the
+  same two shapes as the switch.

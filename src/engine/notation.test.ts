@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fromName, parse, serialize, toName } from './notation';
 import { canRedo, canUndo, newGame, play, redo, undo } from './game';
-import { apply, initial, isTerminal, legalMoves } from './rules';
+import { initial, isTerminal, legalMoves } from './rules';
 import { prng } from './testkit';
 import type { Game } from './types';
 
