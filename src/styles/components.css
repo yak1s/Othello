@@ -1,0 +1,175 @@
+/* ============================================================================
+   Components. Every one defines default / hover / focus-visible / pressed /
+   disabled / loading, per brief §4.2. Hover is gated on (hover: hover) so a
+   touch never leaves a control looking stuck. Specs: DESIGN.md §8.
+   ========================================================================= */
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 var(--s6);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-17);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;                     /* clips the loading rule to the pill */
+  touch-action: manipulation;
+  transition: background-color var(--t-screen) var(--e-out),
+              border-color var(--t-screen) var(--e-out),
+              color var(--t-screen) var(--e-out);
+}
+.btn > .btn__label { transition: transform var(--t-illegal) var(--e-out); }
+
+/* A paper key on a dark table. Brass cannot legibly carry a label at any size
+   (best case Lc 49.3), so it is the keyline around the paper, not the fill.
+   Correction C2, and C7 for why it is a keyline rather than a bottom rule. */
+.btn--primary {
+  background: var(--card);
+  color: var(--ink);
+  border: var(--hair) solid var(--brass);
+  box-shadow: var(--e0);
+}
+@media (hover: hover) {
+  .btn--primary:hover:not(:disabled) { background: var(--bone); border-color: var(--brass-lit); }
+}
+.btn--primary:active:not(:disabled) { background: var(--press); }
+.btn--primary:active:not(:disabled) > .btn__label { transform: translateY(1px); }
+
+.btn--secondary {
+  background: transparent;
+  color: var(--text);
+  border: var(--hair) solid var(--rule);
+}
+@media (hover: hover) {
+  .btn--secondary:hover:not(:disabled) { border-color: var(--text-quiet); }
+}
+.btn--secondary:active:not(:disabled) { background: rgb(122 120 114 / .24); }
+
+/* Present and readable, never ghosted away — the user must be able to read what
+   is unavailable and tap it to learn why (brief §5.2). */
+.btn:disabled {
+  background: transparent;
+  color: var(--disabled);
+  border: var(--hair) solid var(--disabled);
+  cursor: not-allowed;
+}
+
+/* Loading is a brass rule travelling under the label. Not a spinner, not dots. */
+.btn[aria-busy='true'] { pointer-events: none; }
+.btn[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  /* 10px up from the bottom, where the pill is still near full width — at the
+     very edge the curve clips the rule into a stray dash. */
+  inset: auto 0 10px 0;
+  width: 34%;
+  height: 2px;
+  background: var(--brass);
+  animation: rule-travel 900ms linear infinite;
+}
+@keyframes rule-travel {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(294%); }
+}
+:root[data-motion='reduced'] .btn[aria-busy='true']::after {
+  width: 100%;
+  animation: none;
+  opacity: .55;
+}
+
+/* ── Score capsule ───────────────────────────────────────────────────────── */
+
+.capsule {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 40px;
+  padding: 0 var(--s3);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--r-pill);
+}
+.capsule__mark {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--r-pill);
+  flex: none;
+}
+.capsule__mark--dark  { background: var(--ink);  box-shadow: inset 0 -1px 0 var(--disc-rim-dark); }
+.capsule__mark--light { background: var(--bone); box-shadow: inset 0 -1px 0 var(--disc-rim-light); }
+.capsule__name { font-size: var(--fs-15); }
+.capsule__count {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--fs-22);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+/* The pass dim: 900ms, then back. Brief §9. */
+.capsule[data-passed='true'] { animation: capsule-pass var(--t-pass) var(--e-out); }
+@keyframes capsule-pass {
+  0%, 100% { opacity: 1; }
+  15%, 70% { opacity: .55; }
+}
+:root[data-motion='reduced'] .capsule[data-passed='true'] { animation: none; }
+
+/* The thinking indicator: a hairline progress rule, never before 500ms, never dots. */
+.capsule__thinking {
+  position: absolute;
+  inset: auto var(--s3) 0 var(--s3);
+  height: 1px;
+  overflow: hidden;
+}
+.capsule__thinking::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: var(--brass);
+  animation: rule-travel 1200ms linear infinite;
+}
+:root[data-motion='reduced'] .capsule__thinking::after { width: 100%; animation: none; opacity: .55; }
+
+/* ── Paper chit ──────────────────────────────────────────────────────────── */
+
+.chit {
+  display: inline-block;
+  padding: var(--s1) var(--s2);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--r-none);
+  box-shadow: var(--e1);
+  font-size: var(--fs-13);
+}
+
+/* ── Menu row ────────────────────────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--row-h);
+  border-radius: var(--r-none);
+  border-bottom: var(--hair) solid var(--rule);
+  font-size: var(--fs-17);
+  font-weight: 500;
+  text-align: left;
+  touch-action: manipulation;
+  transition: background-color var(--t-screen) var(--e-out);
+}
+.row__label { flex: 1; transition: transform var(--t-illegal) var(--e-out); }
+.row__mark { width: 8px; height: 8px; flex: none; color: var(--text-quiet); }
+@media (hover: hover) { .row:hover:not(:disabled) { background: rgb(122 120 114 / .12); } }
+.row:active:not(:disabled) { background: rgb(122 120 114 / .24); }
+.row:active:not(:disabled) .row__label { transform: translateX(-2px); }
+.row:disabled { color: var(--disabled); cursor: not-allowed; }
+
+/* ── Hairline divider ────────────────────────────────────────────────────── */
+
+.rule { height: var(--hair); background: var(--rule); border: 0; }

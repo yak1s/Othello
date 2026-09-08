@@ -357,3 +357,21 @@ reason that forced it.
 - **C6 — The dark disc's rim is not optional.** A dark disc on felt is Lc 8.9–17.1. The rim at
   `--disc-rim-dark` carries the silhouette at 41.7–49.0 and therefore ships on by default, on every
   felt. The colourblind setting in §5.3 adds a *second*, inner marking on top of it.
+- **C7 — The primary button's brass mark is a keyline, not a bottom rule.** A 2px rule along the
+  bottom of a `--r-pill` key is clipped by the curve into a short chord and reads as an artifact
+  rather than a mark. A 1px `--brass` keyline follows the shape, says *this is the action* without
+  competing with the paper fill (already the brightest thing on a dark ground), and leaves the
+  bottom edge free for the loading rule.
+- **C8 — `--disabled` was raised to `#9A978E` (Lc 45.2).** The first value, card at 40%, measured
+  Lc 22.9. Online matches render Undo and Hint disabled *with a reason on tap* (brief §5.2), so a
+  disabled label has to stay readable — it is information, not decoration. Disabled controls remain
+  exempt from the 75 body target; 45.2 is the deliberate floor.
+- **C9 — There is one turn indicator, owned by the score strip.** The brass rule slides between the
+  capsules; the capsule itself has no rule of its own. Two mechanisms for one signal is exactly the
+  drift the brief warns about. Where no strip exists (the game-over sheet), turn state is past and
+  the text carries it.
+- **C10 — Fonts live in `src/styles/fonts/`, not `public/`.** Referenced relatively so Vite
+  fingerprints them and rewrites the URL for any deploy base; `public/` would force an absolute
+  `/fonts/` path and break a sub-path deployment. Work Sans is a variable file that Google serves
+  once per requested weight, so it ships once under a `font-weight: 400 500` range — 58.6 KB total
+  for both families against a 180 KB budget.

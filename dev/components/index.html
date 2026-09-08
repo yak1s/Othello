@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-felt="baize">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kissa — component specimens</title>
+<link rel="stylesheet" href="/src/styles/index.css">
+<style>
+  /* Specimen page only. Not part of the app; never built for production. */
+  body { padding: var(--s8) var(--s6) var(--s16); }
+  .sheet { max-width: 520px; margin: 0 auto; display: grid; gap: var(--s8); }
+  .spec { display: grid; gap: var(--s3); }
+  .spec__name { color: var(--text-quiet); font-size: var(--fs-13); }
+  .spec__row { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }
+  h1 { margin-bottom: var(--s2); }
+  .lede { color: var(--text-quiet); margin-bottom: var(--s6); }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <h1 class="t-title">Kissa</h1>
+    <p class="lede t-body">Component specimens on the app ground.</p>
+  </header>
+
+  <section class="spec">
+    <p class="spec__name">Primary button, default</p>
+    <div class="spec__row"><button class="btn btn--primary" id="b-default"><span class="btn__label">Play the computer</span></button></div>
+  </section>
+
+  <section class="spec">
+    <p class="spec__name">Primary button, hover</p>
+    <div class="spec__row"><button class="btn btn--primary" id="b-hover"><span class="btn__label">Play the computer</span></button></div>
+  </section>
+
+  <section class="spec">
+    <p class="spec__name">Primary button, focus-visible</p>
+    <div class="spec__row"><button class="btn btn--primary" id="b-focus"><span class="btn__label">Play the computer</span></button></div>
+  </section>
+
+  <section class="spec">
+    <p class="spec__name">Primary button, pressed</p>
+    <div class="spec__row"><button class="btn btn--primary" id="b-active"><span class="btn__label">Play the computer</span></button></div>
+  </section>
+
+  <section class="spec">
+    <p class="spec__name">Primary button, disabled</p>
+    <div class="spec__row"><button class="btn btn--primary" id="b-disabled" disabled><span class="btn__label">Play the computer</span></button></div>
+  </section>
+
+  <section class="spec">
+    <p class="spec__name">Primary button, loading</p>
+    <div class="spec__row"><button class="btn btn--primary" id="b-loading" aria-busy="true"><span class="btn__label">Finding a friend</span></button></div>
+  </section>
+
+  <section class="spec">
+    <p class="spec__name">Score capsules, with the turn rule the strip owns</p>
+    <div class="spec__row">
+      <span class="capsule" data-active="true">
+        <span class="capsule__mark capsule__mark--dark"></span>
+        <span class="capsule__name">You</span>
+        <span class="capsule__count">2</span>
+      </span>
+      <span class="capsule">
+        <span class="capsule__mark capsule__mark--light"></span>
+        <span class="capsule__name">White</span>
+        <span class="capsule__count">2</span>
+      </span>
+    </div>
+  </section>
+</main>
+</body>
+</html>

@@ -37,7 +37,7 @@
   --disc-rim-dark:  #B4AFA4;  /* dark disc's lower-light rim; carries its silhouette */
   --disc-rim-light: #BDB4A0;  /* light disc's shaded rim */
   --press:      #CFC6B0;   /* = --card-edge; paper pressed */
-  --disabled:   #6A6864;   /* card @40% over ink — reads as unavailable, not absent */
+  --disabled:   #9A978E;   /* card @63% over ink — Lc 45.2: unavailable, but still readable */
 
   /* ── Elevation. Three levels. There is no fourth. ───────────────────── */
   --e0: none;

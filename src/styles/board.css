@@ -1,0 +1,247 @@
+/* ============================================================================
+   The board. The one object in the app; everything else is quiet around it.
+   Sizing maths and the 44px reasoning: DESIGN.md §7. Motion: DESIGN.md §9.
+   ========================================================================= */
+
+.board {
+  /* Computed entirely in CSS so the board's size is known before first paint
+     and Lighthouse sees CLS 0 (brief §12). No JS measurement, no reflow. */
+  --board-avail-h: calc(100dvh - var(--topbar-h) - var(--strip-h) - var(--thumb-h)
+                        - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--s8));
+  --board-size: min(calc(100vw - 2 * var(--board-margin)), var(--board-avail-h), var(--board-max));
+  --felt-size: calc(var(--board-size) - 2 * var(--frame-w));
+  --cell: calc(var(--felt-size) / 8);
+
+  display: grid;
+  grid-template-columns: var(--frame-w) 1fr var(--frame-w);
+  grid-template-rows: var(--frame-w) 1fr var(--frame-w);
+  width: var(--board-size);
+  height: var(--board-size);
+  background: var(--lacquer);
+  border-radius: var(--r-none);
+  /* --lacquer measures Lc 0.0 against --ink: without this keyline the case has
+     no silhouette in the room at all. Correction C5. */
+  box-shadow: inset 0 0 0 var(--hair) var(--frame-edge);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Coordinates on the frame, never on the felt ─────────────────────────── */
+
+.board__files, .board__ranks {
+  display: grid;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-coord);
+  opacity: 0;
+  transition: opacity var(--t-screen) var(--e-out);
+}
+.board[data-coords='true'] .board__files,
+.board[data-coords='true'] .board__ranks { opacity: 1; }
+.board__files {
+  grid-column: 2; grid-row: 1;
+  grid-template-columns: repeat(8, 1fr);
+  align-items: center; justify-items: center;
+}
+.board__ranks {
+  grid-column: 1; grid-row: 2;
+  grid-template-rows: repeat(8, 1fr);
+  align-items: center; justify-items: center;
+}
+
+/* ── Felt ────────────────────────────────────────────────────────────────── */
+
+.board__felt {
+  position: relative;
+  grid-column: 2; grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(8, var(--cell));
+  grid-template-rows: repeat(8, var(--cell));
+  background: var(--felt);
+}
+/* The one texture in the app, capped at 4%, never animated. */
+.board__felt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--felt-grain);
+  background-size: var(--felt-grain-tile) var(--felt-grain-tile);
+  opacity: var(--grain-alpha);
+  pointer-events: none;
+}
+.board__row { display: contents; }
+
+/* ── Cells ───────────────────────────────────────────────────────────────── */
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--felt);
+  border-radius: var(--r-none);
+  /* Cells are contiguous: no gutters means no dead space to mis-aim into. */
+  outline-offset: -2px;
+}
+.cell.is-alt { background: var(--felt-deep); }
+/* The outer ring extends under the lacquer frame, so the cells where aiming is
+   worst and the stakes are highest get 14px more target. DESIGN.md §7. */
+.cell[data-file='0'] { margin-left: calc(-1 * var(--frame-w)); padding-left: var(--frame-w); }
+.cell[data-file='7'] { margin-right: calc(-1 * var(--frame-w)); padding-right: var(--frame-w); }
+.cell[data-rank='0'] { margin-top: calc(-1 * var(--frame-w)); padding-top: var(--frame-w); }
+.cell[data-rank='7'] { margin-bottom: calc(-1 * var(--frame-w)); padding-bottom: var(--frame-w); }
+
+.cell__inner {
+  position: relative;
+  width: var(--cell);
+  height: var(--cell);
+  display: grid;
+  place-items: center;
+}
+
+/* Static dots. They do not pulse, breathe, or animate in any way. */
+.cell__dot {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--r-pill);
+  background: var(--bone);
+  opacity: 0;
+}
+.board[data-dots='true'] .cell[data-legal='true'] .cell__dot { opacity: var(--dot-alpha); }
+
+/* The last move: a hairline square inset in the cell, not a coloured wash. */
+.cell[data-last='true']::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: var(--hair) solid var(--brass);
+  opacity: .55;
+  pointer-events: none;
+}
+.board[data-lastmove='false'] .cell[data-last='true']::after { display: none; }
+
+/* Press-and-hold preview: a ghost disc, no colour flash, no scale, no motion. */
+.cell__ghost {
+  position: absolute;
+  inset: var(--disc-inset);
+  border-radius: var(--r-pill);
+  background: var(--bone);
+  opacity: 0;
+  pointer-events: none;
+}
+.cell[data-ghost='dark'] .cell__ghost { background: var(--ink); opacity: var(--ghost-alpha); }
+.cell[data-ghost='light'] .cell__ghost { background: var(--bone); opacity: var(--ghost-alpha); }
+
+/* Illegal tap: 3px shake of the cell's contents, and a --shu hairline. Nothing
+   is written — the shake and the thud are the answer (brief §14). */
+.cell.is-illegal .cell__inner { animation: cell-shake var(--t-illegal) var(--e-out); }
+.cell.is-illegal::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: var(--hair) solid var(--shu);
+  animation: illegal-fade var(--t-illegal-fade) var(--e-out) forwards;
+  pointer-events: none;
+}
+@keyframes cell-shake {
+  0%, 100% { transform: translateX(0); }
+  33%      { transform: translateX(-3px); }
+  66%      { transform: translateX(3px); }
+}
+@keyframes illegal-fade { from { opacity: .4; } to { opacity: 0; } }
+:root[data-motion='reduced'] .cell.is-illegal .cell__inner { animation: none; }
+
+/* ── Discs ───────────────────────────────────────────────────────────────── */
+
+.board__discs {
+  position: absolute;
+  inset: 0;
+  perspective: var(--flip-perspective);
+  pointer-events: none;
+}
+
+.disc {
+  position: absolute;
+  width: calc(var(--cell) - 2 * var(--disc-inset));
+  height: calc(var(--cell) - 2 * var(--disc-inset));
+  left: calc(var(--file) * var(--cell) + var(--disc-inset));
+  top: calc(var(--rank) * var(--cell) + var(--disc-inset));
+  transform-style: preserve-3d;
+  transition: transform var(--t-flip) var(--e-flip);
+}
+
+/* Two faces, so a flip is a pure composite with no repaint. The back face is
+   pre-rotated about the SAME axis the flip will use, which is what makes the
+   disc land upright with its rim at the bottom whichever way it rolled. */
+.disc::before, .disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-pill);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.disc::before { background: var(--ink);  box-shadow: inset 0 -1px 0 var(--disc-rim-dark); }
+.disc::after  { background: var(--bone); box-shadow: inset 0 -1px 0 var(--disc-rim-light); }
+
+.disc[data-color='0']::after  { transform: rotate3d(var(--ax, 0), var(--ay, 1), 0, 180deg); }
+.disc[data-color='1']::before { transform: rotate3d(var(--ax, 0), var(--ay, 1), 0, 180deg); }
+.disc[data-color='1']::after  { transform: none; }
+.disc[data-color='0']::before { transform: none; }
+
+.disc.is-flipping { transform: rotate3d(var(--ax), var(--ay), 0, 180deg); }
+
+/* Placement: it lands before any flip begins. */
+.disc.is-placing { animation: disc-place var(--t-place) var(--e-place); }
+@keyframes disc-place {
+  from { transform: scale(.72); opacity: 0; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Colourblind marking: a second, inner ring on dark discs. The rim in
+   --disc-rim-dark is already mandatory and carries the silhouette (C6); this is
+   the shape cue on top of it, for people who cannot use lightness at all. */
+.board[data-cbmark='true'] .disc[data-color='0']::before {
+  box-shadow: inset 0 -1px 0 var(--disc-rim-dark), inset 0 0 0 2px transparent, inset 0 0 0 3px var(--disc-rim-dark);
+}
+
+/* Reduced motion: colours cross-fade in 120ms. No rotation, no stagger, and the
+   feedback is fully preserved — it is never merely decorative. */
+:root[data-motion='reduced'] .disc { transition: none; }
+:root[data-motion='reduced'] .disc.is-flipping { transform: none; }
+:root[data-motion='reduced'] .disc::before,
+:root[data-motion='reduced'] .disc::after {
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  transition: opacity var(--t-reduced) linear;
+}
+:root[data-motion='reduced'] .disc[data-color='0']::before,
+:root[data-motion='reduced'] .disc[data-color='1']::after { opacity: 1; }
+:root[data-motion='reduced'] .disc[data-color='0']::after,
+:root[data-motion='reduced'] .disc[data-color='1']::before { opacity: 0; }
+:root[data-motion='reduced'] .disc.is-placing { animation: disc-fade var(--t-reduced) linear; }
+@keyframes disc-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* The would-flip preview ring, shown during press-and-hold. 1px, no motion. */
+.disc.is-would-flip::before, .disc.is-would-flip::after {
+  box-shadow: inset 0 -1px 0 var(--disc-rim-dark), inset 0 0 0 1px var(--brass);
+}
+
+/* ── Game over: one slow sweep in the winner's colour, once. ─────────────── */
+
+.board__sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.board__sweep.is-running { animation: board-sweep var(--t-sweep) var(--e-out); }
+@keyframes board-sweep {
+  from { opacity: 0; transform: translateX(-100%); }
+  40%  { opacity: .22; }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+:root[data-motion='reduced'] .board__sweep.is-running { animation: none; }
