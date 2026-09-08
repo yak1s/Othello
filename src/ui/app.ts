@@ -11,10 +11,14 @@ import { GameScreen, danger, primary, passAndPlay, secondary, type Opponent } fr
 import { HomeScreen } from './screens/home';
 import { settingsSheet } from './screens/settings';
 import { helpSheet } from './screens/help';
+import { openFriendFlow } from './screens/friend';
+import { MatchSession } from '../net/session';
+import { formatCode } from '../net/codes';
+import type { Emote, Transport } from '../net/protocol';
 import { SettingsStore, applyDocumentSettings } from '../data/settings';
 import { clearSavedGame, loadSavedGame, saveGame } from '../data/saved';
-import { notation, rules, score } from '../engine';
-import type { Game } from '../engine/types';
+import { games, notation, rules, score } from '../engine';
+import { BLACK, WHITE, type Color, type Game, type Square } from '../engine/types';
 import type { Level, SavedGame } from '../data/types';
 
 type Route = 'home' | 'game';
@@ -34,6 +38,9 @@ export class App {
   private startedAt = 0;
   private installEvent: BeforeInstallPromptEvent | null = null;
   private finishedThisSession = false;
+  private session: MatchSession | null = null;
+  private sessionTimer: ReturnType<typeof setInterval> | undefined;
+  private wakeLock: import('../pwa/wakelock').WakeLock | null = null;
 
   constructor() {
     this.home = new HomeScreen({
@@ -56,6 +63,7 @@ export class App {
       onExit: () => this.go('home'),
       onFinished: (finished, opponent) => this.onFinished(finished, opponent),
       onProgress: (progress, opponent) => this.autosave(progress, opponent),
+      onLocalMove: (square) => { this.session?.playLocal(square); },
       openSettings: () => this.openSettings(),
       openHelp: () => this.openHelp(),
     });
@@ -196,17 +204,96 @@ export class App {
     };
   }
 
-  private openFriendSheet(): void {
-    // Built in the multiplayer phase; the row is never a dead end in the meantime.
-    this.sheets.open({
-      title: 'Play a friend',
-      body: el('p', { class: 't-body', text: 'Two devices, no accounts, no server. Share a six-letter code or a link and the game runs directly between you.' }),
-      dismissible: true,
-      actions: [secondary('Play on this device instead', () => {
-        this.sheets.close();
-        this.startGame(passAndPlay(this.settings.get('lastVariant')));
-      })],
+  private openFriendSheet(code?: string): void {
+    openFriendFlow({
+      sheets: this.sheets,
+      toast: this.toast,
+      random: () => Math.random(),
+      onPassAndPlay: () => this.startGame(passAndPlay(this.settings.get('lastVariant'))),
+      onConnected: (transport, isHost, joined) => this.beginMatch(transport, isHost, joined),
     });
+    if (code) this.toast.show(`Joining ${formatCode(code)}.`);
+  }
+
+  /* ── a match with another device ─────────────────────────────────────── */
+
+  private beginMatch(transport: Transport, isHost: boolean, code: string): void {
+    this.endMatch();
+    const session = new MatchSession({
+      transport, rules, notation, games, isHost, code,
+      variant: this.settings.get('lastVariant'),
+      hostSeat: 'coin',
+      now: () => Date.now(),
+      random: () => Math.random(),
+    });
+    this.session = session;
+    session.start();
+
+    // A move from the far side resolves whatever the screen is waiting on, so
+    // the ordinary opponent loop drives the animation and the narration.
+    let deliver: ((square: Square) => void) | null = null;
+    session.onRemoteMove((square) => { deliver?.(square); deliver = null; });
+    session.onEmote((emote, mine) => this.game.showEmote(EMOTE_TEXT[emote], mine));
+
+    session.onChange((view) => {
+      // A snapshot reconciled a disagreement: adopt it rather than drifting.
+      if (view.game.position.hash !== this.game.current.position.hash
+        && view.game.position.moveNumber !== this.game.current.position.moveNumber) {
+        this.game.resetTo(view.game);
+      }
+      if (view.problem) this.game.setStatus(view.problem);
+      else if (view.phase === 'reconnecting') {
+        const seconds = Math.ceil(view.graceLeft / 1000);
+        this.game.setStatus(`${theirColourWord(view.myColor)} disconnected. Waiting ${seconds}s…`);
+      } else if (view.phase === 'lost') this.offerClaim();
+    });
+
+    this.sheets.close();
+    this.sessionTimer = setInterval(() => session.tick(), 1000);
+    void this.holdWakeLock();
+
+    const opponent: Opponent = {
+      kind: 'friend',
+      color: session.view.myColor === BLACK ? WHITE : BLACK,
+      label: 'Your friend',
+      variant: this.settings.get('lastVariant'),
+      allowUndo: false,
+      allowHint: false,
+      unavailableReason: 'Not available in a friend match.',
+      think: () => new Promise<Square>((resolve) => { deliver = resolve; }),
+      dispose: () => this.endMatch(),
+    };
+    this.startGame(opponent);
+  }
+
+  private offerClaim(): void {
+    if (this.sheets.isOpen) return;
+    this.sheets.open({
+      title: 'Your friend is gone',
+      body: el('p', { class: 't-body', text: 'They have not come back within the grace window.' }),
+      dismissible: false,
+      actions: [
+        primary('Claim the win', () => { this.sheets.close(); this.endMatch(); this.go('home'); }),
+        secondary('Save and exit', () => { this.sheets.close(); this.endMatch(); this.go('home'); }),
+      ],
+    });
+  }
+
+  private endMatch(): void {
+    clearInterval(this.sessionTimer);
+    this.sessionTimer = undefined;
+    this.session?.dispose();
+    this.session = null;
+    void this.wakeLock?.release();
+  }
+
+  /** Held only while an online match is live, and dropped on background. */
+  private async holdWakeLock(): Promise<void> {
+    if (!this.wakeLock) {
+      const { WakeLock } = await import('../pwa/wakelock');
+      this.wakeLock = new WakeLock();
+    }
+    await this.wakeLock.hold();
   }
 
   /* ── persistence ─────────────────────────────────────────────────────── */
@@ -304,12 +391,24 @@ export class App {
   }
 
   private handleDeepLink(): void {
-    const match = /[#&]j=([A-Za-z-]{6,8})/.exec(location.hash);
+    const match = /[#&]j=([A-Za-z-]{6,9})/.exec(location.hash);
     if (!match) return;
     history.replaceState(null, '', location.pathname + location.search);
-    this.openFriendSheet();
+    this.openFriendSheet(match[1] ?? undefined);
   }
 }
+
+const EMOTE_TEXT: Record<Emote, string> = {
+  'good-move': 'Good move',
+  nice: 'Nice',
+  oops: 'Oops',
+  hurry: 'Hurry?',
+  thanks: 'Thanks',
+  rematch: 'Rematch?',
+};
+
+const theirColourWord = (mine: Color | null): string =>
+  (mine === BLACK ? 'White' : 'Black');
 
 /** Not in lib.dom yet, and we only need the two members we call. */
 interface BeforeInstallPromptEvent extends Event {

@@ -39,6 +39,8 @@ export interface GameScreenHost {
   onExit(): void;
   onFinished(game: Game, opponent: Opponent): void;
   onProgress(game: Game, opponent: Opponent): void;
+  /** A move the person here played, for a peer that needs telling. */
+  onLocalMove(square: Square, game: Game): void;
   openSettings(): void;
   openHelp(): void;
 }
@@ -157,9 +159,38 @@ export class GameScreen {
   get current(): Game { return this.game; }
   get currentOpponent(): Opponent { return this.opponent; }
 
+  /**
+   * Adopt a position wholesale, with no animation. Used when a peer's snapshot
+   * has reconciled a disagreement: the board did not get here by anything the
+   * person watched happen, so it must not pretend otherwise.
+   */
+  resetTo(game: Game): void {
+    void this.board.settle();
+    this.game = game;
+    this.lastMove = game.history.at(-1)?.move ?? null;
+    const s = score(game.position);
+    this.shown = [s.black, s.white];
+    this.busy = false;
+    this.refresh();
+  }
+
+  /** Say something the match layer needs shown, without inventing a toast. */
+  setStatus(message: string): void {
+    this.status.textContent = message;
+    this.host.live.say(message);
+  }
+
+  /** A paper chit under the sender's capsule, which dismisses itself. */
+  showEmote(text: string, mine: boolean): void {
+    const side = this.opponent.color === null || mine ? 'left' : 'right';
+    const chit = el('p', { class: `chit emote-chit emote-chit--${side}`, text });
+    this.el.append(chit);
+    setTimeout(() => chit.remove(), 2600);
+  }
+
   /* ── the move loop ───────────────────────────────────────────────────── */
 
-  private async commit(square: Square): Promise<void> {
+  private async commit(square: Square, remote = false): Promise<void> {
     if (this.busy) return;
     const state = this.game.position;
     if (!rules.isLegal(state, square)) { this.board.illegal(square); return; }
@@ -193,6 +224,7 @@ export class GameScreen {
 
     this.narrate(mover, square, result.flipped.length, result.passedBy);
     this.refresh();
+    if (!remote) this.host.onLocalMove(square, this.game);
     this.host.onProgress(this.game, this.opponent);
 
     this.busy = false;
@@ -213,7 +245,7 @@ export class GameScreen {
     try {
       const square = await opp.think(this.game);
       this.setThinking(false);
-      await this.commit(square);
+      await this.commit(square, true);
     } catch {
       // An aborted search (a new game, a backgrounded tab) is not an error; the
       // next start() or resume() puts the board back in charge.

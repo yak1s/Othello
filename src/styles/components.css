@@ -280,3 +280,77 @@ input[type='range']::-moz-range-thumb {
   background: var(--ink);
   box-shadow: inset 0 -1px 0 var(--disc-rim-dark);
 }
+
+/* ── Multiplayer ─────────────────────────────────────────────────────────── */
+
+.qr { display: block; margin: 0 auto; border-radius: var(--r-none); }
+
+/* The room code, set large and spaced so it can be read out across a table. */
+.code {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--fs-34);
+  line-height: var(--lh-display);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.code-input {
+  width: 100%;
+  height: 56px;
+  padding: 0 var(--s3);
+  background: var(--bone);
+  color: var(--ink);
+  border: var(--hair) solid var(--card-edge);
+  border-radius: var(--r-none);
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--fs-22);
+  text-align: center;
+  text-transform: uppercase;
+}
+.code-input:focus-visible { border-color: var(--brass); }
+
+.blob {
+  width: 100%;
+  min-height: 96px;
+  padding: var(--s2);
+  background: var(--bone);
+  color: var(--ink);
+  border: var(--hair) solid var(--card-edge);
+  border-radius: var(--r-none);
+  font-size: var(--fs-13);
+  word-break: break-all;
+  resize: vertical;
+}
+
+/* Emotes: six fixed phrases, one per turn. Not a chat, and not an emoji tray. */
+.emotes { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.emote {
+  padding: var(--s2) var(--s3);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-13);
+}
+.emote:active { background: var(--press); }
+.emote:disabled { color: var(--disabled); cursor: not-allowed; }
+
+/* The emote as it arrives: a paper chit under the sender's capsule. */
+.emote-chit {
+  position: absolute;
+  top: calc(var(--strip-h) - var(--s1));
+  z-index: 1;
+}
+.emote-chit--left { left: var(--s3); }
+.emote-chit--right { right: var(--s3); }
+
+/* The reconnect line and the clock, both on the score strip. */
+.clock {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: var(--fs-15);
+  font-variant-numeric: tabular-nums;
+  color: var(--lacquer);
+}
+.clock[data-low='true'] { color: var(--shu); }
