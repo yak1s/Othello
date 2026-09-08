@@ -1,0 +1,30 @@
+{
+  "name": "kissa",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Kissa — Reversi for two, or one. An offline-capable PWA.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "check:apca": "node scripts/apca-check.mjs",
+    "check:size": "node scripts/size-budget.mjs",
+    "gen:felt": "node scripts/gen-felt.mjs",
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "fonts": "node scripts/fetch-fonts.mjs",
+    "verify": "npm run build && npm run test && npm run check:apca && npm run check:size"
+  },
+  "dependencies": {
+    "trystero": "^0.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}

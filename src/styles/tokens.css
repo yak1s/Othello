@@ -1,0 +1,118 @@
+/* ============================================================================
+   Kissa — design tokens. The single source of truth.
+   Every colour, size, spacing, radius and duration in this app comes from here.
+   Never inline a raw value anywhere else. Rationale for each: DESIGN.md.
+   ========================================================================= */
+
+:root {
+  /* ── Surfaces ───────────────────────────────────────────────────────────
+     The room is ink; the table is felt; the case is lacquer; paper is card. */
+  --ink:        #16171A;   /* the dim room, and the dark discs */
+  --lacquer:    #3B2A22;   /* the hinged case */
+  --card:       #E8E2D2;   /* printed paper: score strip, sheets, chits */
+  --card-edge:  #CFC6B0;   /* the paper's own edge — the --e1 hairline */
+
+  /* ── Felt (three choices; --felt/--felt-deep are what components read) ── */
+  --baize:      #2F5D50;
+  --baize-deep: #24493F;
+  --slate:      #3A424B;
+  --slate-deep: #323942;
+  --sand:       #5E5540;
+  --sand-deep:  #554D3A;
+  --felt:       var(--baize);
+  --felt-deep:  var(--baize-deep);
+
+  /* ── Pieces and accents ─────────────────────────────────────────────── */
+  --bone:       #F2EDE1;   /* the light discs */
+  --brass:      #A8842C;   /* active turn, primary mark */
+  --shu:        #9B3A2E;   /* the one alert colour */
+
+  /* ── Derived, each solved against APCA (see DESIGN.md §Contrast) ─────── */
+  --brass-lit:  #B79950;   /* brass + 20% bone — focus ring; Lc >=30 on all felts */
+  --text:       #E8E2D2;   /* = --card. Lc 88.2 on ink */
+  --text-quiet: #D2CDBF;   /* the dimmest tone still clearing Lc 75 on ink */
+  --text-coord: #9A8F83;   /* board coordinates on lacquer, Lc 38.3 */
+  --rule:       #7A7872;   /* 1px divider on ink, Lc 30.0 */
+  --frame-edge: #8D8276;   /* the case's lit outer keyline, Lc 35.5 on ink */
+  --disc-rim-dark:  #B4AFA4;  /* dark disc's lower-light rim; carries its silhouette */
+  --disc-rim-light: #BDB4A0;  /* light disc's shaded rim */
+  --press:      #CFC6B0;   /* = --card-edge; paper pressed */
+  --disabled:   #6A6864;   /* card @40% over ink — reads as unavailable, not absent */
+
+  /* ── Elevation. Three levels. There is no fourth. ───────────────────── */
+  --e0: none;
+  --e1: 0 1px 0 var(--card-edge);
+  --e2: 0 8px 24px -8px rgba(22, 23, 26, .45);
+
+  /* ── Radii. Two values. No mid-radius rounded rectangle exists here. ─── */
+  --r-none: 0;
+  --r-pill: 999px;
+
+  /* ── Spacing. 4px base; only these steps. ───────────────────────────── */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s6: 24px; --s8: 32px; --s12: 48px; --s16: 64px;
+
+  /* ── Type ───────────────────────────────────────────────────────────── */
+  --f-display: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  --f-body: 'Work Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --fs-13: 13px; --fs-15: 15px; --fs-17: 17px;
+  --fs-22: 22px; --fs-34: 34px; --fs-56: 56px;
+  --lh-body: 1.45;
+  --lh-display: 1.1;
+  --ls-display: -0.02em;
+
+  /* ── Motion. Durations and easings are named; components never guess. ── */
+  --t-place: 180ms;
+  --t-flip: 260ms;
+  --t-stagger: 45ms;
+  --t-stagger-tight: 25ms;   /* waves over 20 discs compress to this */
+  --t-illegal: 90ms;
+  --t-illegal-fade: 200ms;
+  --t-score: 220ms;
+  --t-turn: 200ms;
+  --t-pass: 900ms;
+  --t-sweep: 700ms;
+  --t-screen: 180ms;
+  --t-reduced: 120ms;
+  --t-toast: 2400ms;
+  --e-place: cubic-bezier(.34, 1.4, .64, 1);
+  --e-flip: cubic-bezier(.2, .8, .25, 1);
+  --e-out: cubic-bezier(0, 0, .2, 1);
+  --flip-perspective: 600px;
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  --topbar-h: 36px;
+  --strip-h: 64px;
+  --thumb-h: 56px;
+  --row-h: 56px;
+  --board-max: 480px;
+  --board-margin: var(--s4);
+  --frame-w: 14px;          /* the lacquer case; coordinates live on it */
+  --hair: 1px;
+  --focus-w: 2px;
+  --focus-offset: 2px;
+
+  /* ── Board internals ────────────────────────────────────────────────── */
+  --disc-inset: 3px;        /* felt visible around each disc */
+  --dot-size: 6px;          /* legal-move dot */
+  --dot-alpha: .32;
+  --ghost-alpha: .22;
+  --grain-alpha: .04;       /* felt texture ceiling, per brief */
+}
+
+/* Felt choices swap only the two felt tokens. Nothing else changes. */
+:root[data-felt='slate'] { --felt: var(--slate); --felt-deep: var(--slate-deep); }
+:root[data-felt='sand']  { --felt: var(--sand);  --felt-deep: var(--sand-deep); }
+
+/* Reduced motion collapses the spec to its no-rotation, no-stagger equivalent.
+   Feedback is never removed — only its mechanism changes. See DESIGN.md §Motion. */
+:root[data-motion='reduced'] {
+  --t-place: var(--t-reduced);
+  --t-flip: var(--t-reduced);
+  --t-stagger: 0ms;
+  --t-stagger-tight: 0ms;
+  --t-screen: var(--t-reduced);
+  --t-sweep: 0ms;
+  --e-place: linear;
+  --e-flip: linear;
+}
