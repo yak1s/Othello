@@ -64,12 +64,12 @@ function host(flow: FriendFlow, nav: Nav): void {
   const step = advance(nav);
   const code = makeCode(flow.random);
   const link = joinLink(code, location.href.split('#')[0]!);
-  const status = el('p', { class: 't-body', text: 'Waiting for your friend to join.' });
+  const status = el('p', { class: 't-body centred', text: 'Waiting for your friend to join.' });
 
   const body = el('div', {}, [
     el('p', { class: 'code', text: formatCode(code) }),
     qrSvg(link, { size: 176 }),
-    el('p', { class: 't-body', style: 'text-align:center;margin-top:var(--s3)', text: 'Read the code out, or let them scan this.' }),
+    el('p', { class: 't-body centred', text: 'Read the code out, or let them scan this.' }),
     status,
   ]);
 

@@ -128,3 +128,35 @@ A running log of what changed each phase and why. Design corrections live in
   over a real WebRTC data channel with the offer and answer carried by hand.
   The trystero path needs live relays, which this sandbox blocks, so it is not
   covered there — the part that is ours is.
+
+## The removal pass
+
+Three things came out during the build rather than at the end, each because the
+screen said the same thing twice:
+
+- The per-capsule turn rule, once the score strip owned a sliding one (C9).
+- The per-capsule disc counts, once the centre carried the score (C15) — the
+  same two numbers had been on screen three times.
+- A second Data row in Settings reassuring about privacy, which the first line
+  already implied.
+
+The one decoration left that I would otherwise cut is the chevron on each home
+row: the rows are 56px, hairline-separated and labelled, so they read as
+tappable without it. It stays because brief §5.1 draws it.
+
+## What is not done
+
+- **The trystero path is not verified end to end.** This sandbox's proxy refuses
+  outbound WebSockets, so the nostr and torrent relays are unreachable here. The
+  session logic underneath is covered by 26 tests against a loopback transport,
+  and the WebRTC data path is covered end to end through the manual exchange —
+  but two devices finding each other over a public relay has not been run.
+- **The three deeper opening-book names** (Tiger, Rose, Buffalo) were written
+  from memory. Every line is asserted legal and the names are internal, never
+  shown, but they want checking against a reference.
+- **Lighthouse has not been run** — it is not installed here. The budgets it
+  would measure are checked directly instead: JS 51.2 KB gzipped of 120,
+  CSS 5.9 of 14, fonts 58.6 of 180, and CLS asserted under 0.01 by a test.
+- **60 fps on a Pixel 4a is not measured**, only designed for: the flip is a
+  pure composite with no repaint, and the wave compresses its stagger past
+  twenty discs rather than dropping frames.

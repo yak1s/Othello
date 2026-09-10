@@ -61,6 +61,8 @@ const pairs = [
   ['ui', 'board keyline against the frame', T['--frame-edge'], T['--lacquer']],
   ['ui', 'destructive rule on paper', T['--shu'], T['--card']],
   ['ui', 'switch track, on', T['--brass'], T['--card']],
+  ['ui', 'light disc mark on paper', T['--mark-edge'], T['--card']],
+  ['ui', 'dark disc mark on paper', T['--ink'], T['--card']],
   ...FELTS.map(([name, felt]) => ['ui', `legal-move dot on ${name}`, blend(T['--bone'], felt, 0.46), felt]),
   ...FELTS.map(([name, felt]) => ['ui', `last-move marker on ${name}`, T['--brass-lit'], felt]),
   ...FELTS.map(([name, felt]) => ['ui', `ghost disc rim on ${name}`, T['--disc-rim-dark'], felt]),

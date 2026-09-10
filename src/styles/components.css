@@ -102,7 +102,9 @@
   flex: none;
 }
 .capsule__mark--dark  { background: var(--ink);  box-shadow: inset 0 -1px 0 var(--disc-rim-dark); }
-.capsule__mark--light { background: var(--bone); box-shadow: inset 0 -1px 0 var(--disc-rim-light); }
+/* On paper a light disc has no face contrast at all (Lc 0.0), so the whole
+   edge carries it, not just the lower rim. Correction C20. */
+.capsule__mark--light { background: var(--bone); box-shadow: inset 0 0 0 1px var(--mark-edge); }
 .capsule__name { font-size: var(--fs-15); }
 .capsule__count {
   font-family: var(--f-display);
@@ -284,6 +286,8 @@ input[type='range']::-moz-range-thumb {
 /* ── Multiplayer ─────────────────────────────────────────────────────────── */
 
 .qr { display: block; margin: 0 auto; border-radius: var(--r-none); }
+
+.centred { text-align: center; }
 
 /* The room code, set large and spaced so it can be read out across a table. */
 .code {

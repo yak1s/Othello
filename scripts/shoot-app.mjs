@@ -59,5 +59,30 @@ await page.waitForTimeout(250);
 await page.getByRole('button', { name: 'How to play' }).click();
 await shot('sheet-help');
 
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+// The multiplayer sheet, with the code and the QR we encode ourselves.
+await page.getByRole('button', { name: 'Play a friend' }).click();
+await page.getByRole('button', { name: 'Start a game' }).click();
+await page.waitForTimeout(500);
+await shot('sheet-friend');
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
+
+// The other two felts, on a played-out board.
+for (const felt of ['slate', 'sand']) {
+  await page.evaluate((f) => { document.documentElement.dataset.felt = f; }, felt);
+  await page.getByRole('button', { name: 'Pass & play' }).click();
+  await page.waitForTimeout(300);
+  for (const square of ['d3', 'c5', 'b6', 'c3', 'd2']) {
+    const cell = page.locator(`.cell[aria-label^="${square},"]:not([disabled])`);
+    if (await cell.count()) { await cell.click({ force: true }); await page.waitForTimeout(700); }
+  }
+  await shot(`felt-${felt}`);
+  await page.locator('.topbar__back').click();
+  await page.waitForTimeout(400);
+}
+
 console.log(errors.length ? `\nCONSOLE ERRORS:\n${errors.join('\n')}` : '\nno console errors');
 await browser.close();

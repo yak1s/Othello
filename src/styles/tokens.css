@@ -38,7 +38,8 @@
   --rule:       #7A7872;   /* 1px divider on ink, Lc 30.0 */
   --frame-edge: #8D8276;   /* the case's lit outer keyline, Lc 35.5 on ink */
   --disc-rim-dark:  #B4AFA4;  /* dark disc's lower-light rim; carries its silhouette */
-  --disc-rim-light: #BDB4A0;  /* light disc's shaded rim */
+  --disc-rim-light: #BDB4A0;  /* light disc's shaded rim, against felt */
+  --mark-edge:  #A89F8C;   /* a light disc *mark* on paper: its face is Lc 0.0 there */
   --press:      #D4CCB7;   /* paper pressed: the darkest tone that keeps its label at Lc 75 */
   --disabled:   #9A978E;   /* card @63% over ink — Lc 45.2: unavailable, but still readable */
 

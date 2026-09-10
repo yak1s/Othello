@@ -420,3 +420,9 @@ reason that forced it.
   the pressed fill dropped the button's own label to Lc 72.1, under the 75 body target, for as long
   as a finger was down. `#D4CCB7` is the darkest press that keeps the label at 75.3 and is still
   clearly a press.
+- **C20 — A light disc *mark* on paper is drawn as a full edge, not a lower rim.** `--bone` on
+  `--card` measures **Lc 0.0**: on the score strip and the Continue slip, the white player's mark
+  was invisible, which is the one thing those marks exist to say. On felt the lower rim is enough
+  (Lc 44.7–52.0), but on paper the whole edge has to carry it, in `--mark-edge` `#A89F8C` (Lc 34.2).
+  A single darker rim token could not serve both, because the value that works on paper drops to
+  23.7 against the Sand felt.

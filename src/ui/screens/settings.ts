@@ -55,8 +55,9 @@ export function settingsSheet(store: SettingsStore, toast: Toast): SheetContent 
     recordGroup(),
 
     group('Data', [
-      staticField('Archive', `The last ${ARCHIVE_CAP} finished games are kept on this device. Older ones drop off.`),
-      staticField('Where it lives', 'On this device only. Nothing is sent anywhere, and there is nothing to sign in to.'),
+      // One line about the archive, not two. The removal pass took the second,
+      // which reassured about privacy the first had already implied.
+      staticField('Archive', `The last ${ARCHIVE_CAP} finished games are kept on this device. Nothing leaves it, and older games drop off.`),
     ]),
   );
 

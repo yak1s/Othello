@@ -363,12 +363,32 @@ export class GameScreen {
     this.slideTurnRule(state.turn, over);
     if (!over) this.status.textContent = this.turnSentence();
 
-    // aria-disabled rather than disabled: the control must stay tappable,
-    // because the tap is how the reason gets told (brief §5.2).
-    const canUndoNow = this.opponent.allowUndo && canUndo(this.game) && this.undoBudgetLeft();
-    this.thumbs.undo.setAttribute('aria-disabled', String(!canUndoNow));
-    this.thumbs.hint.setAttribute('aria-disabled',
-      String(!this.opponent.allowHint || !this.host.settings().hints || !this.isLocalTurn()));
+    // These look unavailable but stay genuinely enabled, because the tap is how
+    // the reason gets told (brief §5.2). Marking them aria-disabled would say
+    // "cannot be activated" to a screen reader while a sighted person taps it
+    // and gets an explanation — so the reason goes in the label instead.
+    this.markUnavailable(this.thumbs.undo, 'Undo', this.undoReason());
+    this.markUnavailable(this.thumbs.hint, 'Hint', this.hintReason());
+  }
+
+  /** Null when the control is usable; otherwise why it is not. */
+  private undoReason(): string | null {
+    if (!this.opponent.allowUndo) return this.opponent.unavailableReason ?? 'Not available in this match.';
+    if (!canUndo(this.game)) return 'Nothing to undo yet.';
+    if (!this.undoBudgetLeft()) return 'No undos left this game.';
+    return null;
+  }
+
+  private hintReason(): string | null {
+    if (!this.opponent.allowHint) return this.opponent.unavailableReason ?? 'Not available in this match.';
+    if (!this.host.settings().hints) return 'Hints are off in Settings.';
+    if (!this.isLocalTurn()) return 'Wait for your turn.';
+    return null;
+  }
+
+  private markUnavailable(button: HTMLButtonElement, label: string, reason: string | null): void {
+    button.dataset.unavailable = String(reason !== null);
+    button.setAttribute('aria-label', reason === null ? label : `${label}. ${reason}`);
   }
 
   private isLocalTurn(): boolean {
@@ -464,12 +484,8 @@ export class GameScreen {
   }
 
   private async undoMove(): Promise<void> {
-    if (!this.opponent.allowUndo) {
-      this.host.toast.show(this.opponent.unavailableReason ?? 'Not available in this match.');
-      return;
-    }
-    if (!canUndo(this.game)) { this.host.toast.show('Nothing to undo yet.'); return; }
-    if (!this.undoBudgetLeft()) { this.host.toast.show('No undos left this game.'); return; }
+    const reason = this.undoReason();
+    if (reason) { this.host.toast.show(reason); return; }
 
     await this.board.settle();
     // Against the computer one undo takes back the pair, so the player is
@@ -489,12 +505,9 @@ export class GameScreen {
   }
 
   private async askHint(): Promise<void> {
-    if (!this.opponent.allowHint || !this.opponent.hint) {
-      this.host.toast.show(this.opponent.unavailableReason ?? 'Not available in this match.');
-      return;
-    }
-    if (!this.host.settings().hints) { this.host.toast.show('Hints are off in Settings.'); return; }
-    if (!this.isLocalTurn()) { this.host.toast.show('Wait for your turn.'); return; }
+    const reason = this.hintReason();
+    if (reason) { this.host.toast.show(reason); return; }
+    if (!this.opponent.hint) { this.host.toast.show('Not available in this match.'); return; }
 
     this.thumbs.hint.setAttribute('aria-busy', 'true');
     try {

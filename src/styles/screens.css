@@ -162,10 +162,11 @@
 }
 @media (hover: hover) { .thumbbar__slot:hover:not(:disabled) { background: rgb(122 120 114 / .12); } }
 .thumbbar__slot:active:not(:disabled) { background: rgb(122 120 114 / .24); }
-/* Disabled, never hidden: hiding a control shifts the layout between modes. And
-   it stays tappable, because the tap is how the reason gets told (brief §5.2). */
-.thumbbar__slot[aria-disabled='true'] { color: var(--disabled); }
-.thumbbar__slot[aria-disabled='true']:active { background: rgb(122 120 114 / .12); }
+/* Unavailable, never hidden: hiding a control shifts the layout between modes.
+   It stays genuinely enabled, because the tap is how the reason gets told
+   (brief §5.2), and the reason is in its accessible name. */
+.thumbbar__slot[data-unavailable='true'] { color: var(--disabled); }
+.thumbbar__slot[data-unavailable='true']:active { background: rgb(122 120 114 / .12); }
 .chit-host { position: absolute; left: 50%; top: var(--s3); transform: translateX(-50%); z-index: 1; }
 
 /* ── Sheets ──────────────────────────────────────────────────────────────── */
