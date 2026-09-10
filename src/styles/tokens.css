@@ -101,7 +101,8 @@
   --dot-size: 6px;          /* legal-move dot */
   --dot-alpha: .46;         /* solved: the least that clears Lc 30 on every felt */
   --ghost-alpha: .22;
-  --grain-alpha: .04;       /* felt texture ceiling, per brief */
+  --felt-dot: rgb(22 23 26 / .34);  /* the board's four printed guide dots */
+  --felt-dot-size: 5px;
 }
 
 /* Felt choices swap only the two felt tokens. Nothing else changes. */

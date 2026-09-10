@@ -160,3 +160,17 @@ tappable without it. It stays because brief §5.1 draws it.
 - **60 fps on a Pixel 4a is not measured**, only designed for: the flip is a
   pure composite with no repaint, and the wave compresses its stagger past
   twenty discs rather than dropping frames.
+
+## Two additions after review
+
+- **The board's four guide dots** (C21), at the grid intersections two squares in
+  from each corner, where a printed board has them. Under the discs, and
+  deliberately unlike a legal-move dot: 5px at a corner where four squares meet,
+  against 6px at the centre of a square.
+- **The felt grain lifted from 4% to 9%** (C22). At 4% it was invisible at phone
+  scale — a texture that cost bytes and gave nothing. The lift forced two
+  corrections worth more than the opacity change: the alpha is now baked into
+  the tile, so the grain is a background layer on the cell rather than an
+  overlay that was texturing the legal-move dots and the last-move marker; and
+  each cell offsets the tile by its position, so the weave runs continuously
+  across the felt instead of restarting in every square.

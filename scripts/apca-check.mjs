@@ -72,6 +72,7 @@ const pairs = [
   ['disabled', 'disabled control label and border', T['--disabled'], T['--ink']],
   ['ui', 'coordinates on the frame', T['--text-coord'], T['--lacquer']],
   ['exempt', 'paper hairline (--e1), decorative', T['--card-edge'], T['--card']],
+  ...FELTS.map(([name, felt]) => ['exempt', `guide dot on ${name}, a printed mark`, blend(T['--ink'], felt, 0.34), felt]),
   ...FELTS.map(([name, felt], i) => ['exempt', `${name} weave, intentionally near-invisible`, FELT_ALTS[i][1], felt]),
 ];
 

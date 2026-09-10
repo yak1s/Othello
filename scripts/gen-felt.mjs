@@ -5,11 +5,18 @@ import { writeFileSync } from 'node:fs';
 // fractalNoise at a high base frequency reads as woven nap rather than cloud.
 // Four octaves gives the weave a coarse and a fine pass, like real baize.
 // stitchTiles keeps the 120px tile seamless when repeated across the board.
+// The alpha is baked into the tile rather than applied with `opacity`, so the
+// grain can be a background layer on the cell itself. As an overlay above the
+// cells it also textured the legal-move dots and the last-move marker, which
+// are information and should not be sitting under noise.
+const ALPHA = 0.09;
+
 const svg = [
   '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">',
   '<filter id="g" x="0" y="0" width="100%" height="100%">',
   '<feTurbulence type="fractalNoise" baseFrequency="0.86" numOctaves="4" seed="17" stitchTiles="stitch"/>',
   '<feColorMatrix type="saturate" values="0"/>',
+  `<feComponentTransfer><feFuncA type="linear" slope="${ALPHA}"/></feComponentTransfer>`,
   '</filter>',
   '<rect width="120" height="120" filter="url(#g)"/>',
   '</svg>',

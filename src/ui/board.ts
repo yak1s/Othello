@@ -46,6 +46,7 @@ export class BoardView {
 
   private readonly felt: HTMLElement;
   private readonly discLayer: HTMLElement;
+  private readonly dotLayer: HTMLElement;
   private readonly sweep: HTMLElement;
   private readonly cells: HTMLButtonElement[] = [];
   private readonly discs = new Map<Square, HTMLElement>();
@@ -61,6 +62,11 @@ export class BoardView {
   constructor(private readonly cb: BoardCallbacks) {
     this.felt = el('div', { class: 'board__felt', role: 'grid', 'aria-label': 'Reversi board' });
     this.discLayer = el('div', { class: 'board__discs', 'aria-hidden': 'true' });
+    // Two squares in from each corner, at the intersections, exactly where a
+    // printed board has them.
+    this.dotLayer = el('div', { class: 'board__dots', 'aria-hidden': 'true' },
+      [[2, 2], [6, 2], [2, 6], [6, 6]].map(([x, y]) =>
+        el('span', { class: 'board__dot', '--x': String(x), '--y': String(y) })));
     this.sweep = el('div', { class: 'board__sweep', 'aria-hidden': 'true' });
 
     for (let rank = 0; rank < SIZE; rank += 1) {
@@ -74,6 +80,8 @@ export class BoardView {
           'data-square': square,
           'data-file': file,
           'data-rank': rank,
+          '--file': String(file),
+          '--rank': String(rank),
           tabindex: square === this.focused ? 0 : -1,
         }, [el('span', { class: 'cell__inner' }, [
           el('span', { class: 'cell__ghost' }),
@@ -85,7 +93,7 @@ export class BoardView {
       }
       this.felt.append(row);
     }
-    this.felt.append(this.discLayer, this.sweep);
+    this.felt.append(this.dotLayer, this.discLayer, this.sweep);
 
     this.el = el('div', { class: 'board', 'data-dots': 'true', 'data-lastmove': 'true' }, [
       el('div', { class: 'board__files', 'aria-hidden': 'true' },

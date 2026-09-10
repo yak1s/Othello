@@ -60,17 +60,26 @@
   grid-template-rows: repeat(8, var(--cell));
   background: var(--felt);
 }
-/* The one texture in the app, capped at 4%, never animated. */
-.board__felt::before {
-  content: '';
+.board__row { display: contents; }
+
+/* The four guide dots a real Othello board is printed with, at the grid
+   intersections two squares in from each corner. They sit under the discs and
+   carry no information: they are there because the object has them. */
+.board__dots {
   position: absolute;
   inset: 0;
-  background-image: var(--felt-grain);
-  background-size: var(--felt-grain-tile) var(--felt-grain-tile);
-  opacity: var(--grain-alpha);
   pointer-events: none;
 }
-.board__row { display: contents; }
+.board__dot {
+  position: absolute;
+  width: var(--felt-dot-size);
+  height: var(--felt-dot-size);
+  margin: calc(var(--felt-dot-size) / -2) 0 0 calc(var(--felt-dot-size) / -2);
+  left: calc(var(--x) * var(--cell));
+  top: calc(var(--y) * var(--cell));
+  border-radius: var(--r-pill);
+  background: var(--felt-dot);
+}
 
 /* ── Cells ───────────────────────────────────────────────────────────────── */
 
@@ -99,9 +108,16 @@
   height: var(--cell);
   display: grid;
   place-items: center;
-  background: var(--felt);
+  background-color: var(--felt);
+  /* The one texture in the app, never animated. Its alpha is baked into the
+     tile so it can live here, under the cell's own dots and markers, and the
+     position is offset by the cell's place on the board so the weave runs
+     continuously across the felt instead of restarting in every square. */
+  background-image: var(--felt-grain);
+  background-size: var(--felt-grain-tile) var(--felt-grain-tile);
+  background-position: calc(var(--file) * var(--cell) * -1) calc(var(--rank) * var(--cell) * -1);
 }
-.cell.is-alt .cell__inner { background: var(--felt-deep); }
+.cell.is-alt .cell__inner { background-color: var(--felt-deep); }
 
 /* Static dots. They do not pulse, breathe, or animate in any way. */
 .cell__dot {

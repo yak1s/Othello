@@ -426,3 +426,16 @@ reason that forced it.
   (Lc 44.7–52.0), but on paper the whole edge has to carry it, in `--mark-edge` `#A89F8C` (Lc 34.2).
   A single darker rim token could not serve both, because the value that works on paper drops to
   23.7 against the Sand felt.
+- **C21 — The board has its four guide dots.** A printed Othello board carries small dots at the
+  grid intersections two squares in from each corner, and the brief does not mention them. They are
+  in, at `--felt-dot` (`--ink` at 34%), sitting under the discs. They carry no information — they
+  are there because the object has them — so they are listed as a measured exemption rather than
+  held to the 30 floor, and they must never be mistaken for a legal-move dot: those are 6px and at
+  the centre of a square, these are 5px and at a corner where four squares meet.
+- **C22 — The felt grain is 9%, not the brief's 4%, and it lives on the cell.** At 4% it was
+  invisible at phone scale, which made it a texture that cost bytes and gave nothing. Two changes
+  came with the lift: the alpha is now **baked into the tile** by `feComponentTransfer` rather than
+  applied with `opacity`, so the grain can be a background layer on `.cell__inner` — as an overlay
+  above the cells it also textured the legal-move dots and the last-move marker, which are
+  information and should not sit under noise. And each cell offsets the tile by its own place on
+  the board, so the weave runs continuously across the felt instead of restarting in every square.
