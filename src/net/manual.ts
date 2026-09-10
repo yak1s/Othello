@@ -15,8 +15,10 @@
 import type { Message, Transport } from './protocol';
 
 const CHANNEL = 'kissa';
-/** Gathering usually finishes far sooner; this is only a backstop. */
+/** Hard backstop: some networks never report gathering as complete at all. */
 const GATHER_TIMEOUT_MS = 4000;
+/** Once the candidates stop arriving, waiting longer buys nothing. */
+const GATHER_QUIET_MS = 600;
 
 /**
  * Trim the SDP to what a browser actually needs from the far side, then deflate
@@ -24,12 +26,15 @@ const GATHER_TIMEOUT_MS = 4000;
  * lot to paste; this typically brings it under one.
  */
 async function pack(sdp: RTCSessionDescriptionInit): Promise<string> {
-  const trimmed = (sdp.sdp ?? '')
-    .split('\r\n')
+  const lines = (sdp.sdp ?? '')
+    .split(/\r?\n/)
+    // An SDP ends with a line terminator, so splitting leaves a trailing empty
+    // string. Carrying it through and then re-adding a terminator on the way
+    // back produces a blank line, which every parser rejects outright.
+    .filter((line) => line.length > 0)
     .filter((line) => !line.startsWith('a=extmap') && !line.startsWith('a=rtcp-fb')
-      && !line.startsWith('a=ssrc') && !line.startsWith('a=rtpmap') && !line.startsWith('a=fmtp'))
-    .join('\n');
-  const payload = `${sdp.type === 'offer' ? 'o' : 'a'}\n${trimmed}`;
+      && !line.startsWith('a=ssrc') && !line.startsWith('a=rtpmap') && !line.startsWith('a=fmtp'));
+  const payload = `${sdp.type === 'offer' ? 'o' : 'a'}\n${lines.join('\n')}`;
   return `K1${await deflate(payload)}`;
 }
 
@@ -38,8 +43,11 @@ async function unpack(blob: string): Promise<RTCSessionDescriptionInit> {
   if (!trimmed.startsWith('K1')) throw new Error('That is not a Kissa code.');
   const payload = await inflate(trimmed.slice(2));
   const newline = payload.indexOf('\n');
+  if (newline < 0) throw new Error('That is not a Kissa code.');
   const kind = payload.slice(0, newline);
-  const sdp = `${payload.slice(newline + 1).split('\n').join('\r\n')}\r\n`;
+  const lines = payload.slice(newline + 1).split('\n').filter((line) => line.length > 0);
+  // Exactly one terminator per line, including the last.
+  const sdp = `${lines.join('\r\n')}\r\n`;
   return { type: kind === 'o' ? 'offer' : 'answer', sdp };
 }
 
@@ -118,11 +126,23 @@ function newConnection(): RTCPeerConnection {
   return new RTCPeerConnection({ iceServers: [] });
 }
 
+/**
+ * Wait for candidates, but not for a promise the browser may never keep.
+ * Plenty of networks leave gathering in progress indefinitely — this sandbox
+ * does — so the blob is taken as soon as the candidates stop arriving, and the
+ * hard timeout is only there for the case where none ever do.
+ */
 function gathered(pc: RTCPeerConnection): Promise<void> {
   if (pc.iceGatheringState === 'complete') return Promise.resolve();
   return new Promise((resolve) => {
-    const done = (): void => { clearTimeout(timer); resolve(); };
-    const timer = setTimeout(done, GATHER_TIMEOUT_MS);
+    let quiet: ReturnType<typeof setTimeout> | undefined;
+    const done = (): void => { clearTimeout(hard); clearTimeout(quiet); resolve(); };
+    const hard = setTimeout(done, GATHER_TIMEOUT_MS);
+    pc.addEventListener('icecandidate', (event) => {
+      if (event.candidate === null) { done(); return; }
+      clearTimeout(quiet);
+      quiet = setTimeout(done, GATHER_QUIET_MS);
+    });
     pc.addEventListener('icegatheringstatechange', () => {
       if (pc.iceGatheringState === 'complete') done();
     });

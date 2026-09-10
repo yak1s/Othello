@@ -52,8 +52,11 @@ export function settingsSheet(store: SettingsStore, toast: Toast): SheetContent 
       ], 'Reduced removes the flip rotation and the sweep. Nothing it tells you is lost.'),
     ]),
 
+    recordGroup(),
+
     group('Data', [
       staticField('Archive', `The last ${ARCHIVE_CAP} finished games are kept on this device. Older ones drop off.`),
+      staticField('Where it lives', 'On this device only. Nothing is sent anywhere, and there is nothing to sign in to.'),
     ]),
   );
 
@@ -97,6 +100,47 @@ export function settingsSheet(store: SettingsStore, toast: Toast): SheetContent 
     dismissible: true,
     actions: [exportGames, importGames, clearStats],
   };
+}
+
+/**
+ * The record, filled in once IndexedDB answers. It is built empty and populated
+ * rather than awaited, because a settings sheet must open immediately.
+ */
+function recordGroup(): HTMLElement {
+  const body = el('div');
+  const section = group('Your record', [body]);
+  body.append(el('p', { class: 'field__hint', text: 'Reading the archive…' }));
+
+  void import('../../data/archive').then(async ({ loadStats }) => {
+    const stats = await loadStats();
+    body.replaceChildren();
+    if (stats.gamesFinished === 0) {
+      // The empty state, written specifically (brief §14).
+      body.append(el('p', { class: 'field__hint', text: 'No finished games yet. Beat the computer and it’ll show up here.' }));
+      return;
+    }
+    const played = Object.entries(stats.perLevel)
+      .filter(([, r]) => r.wins + r.losses + r.draws > 0);
+    for (const [level, record] of played) {
+      body.append(staticField(
+        `Level ${level}`,
+        `${record.wins} won, ${record.losses} lost${record.draws ? `, ${record.draws} drawn` : ''}`,
+      ));
+    }
+    const average = stats.gamesFinished === 0 ? 0 : stats.totalMargin / stats.gamesFinished;
+    body.append(
+      staticField('Games finished', String(stats.gamesFinished)),
+      staticField('Average margin', `${average >= 0 ? '+' : ''}${average.toFixed(1)} discs`),
+      staticField('Corners taken', stats.cornersAvailable === 0
+        ? 'None yet'
+        : `${Math.round((stats.cornersTaken / stats.cornersAvailable) * 100)}% of those on offer`),
+      staticField('Longest winning run', `${stats.longestWinStreak} game${stats.longestWinStreak === 1 ? '' : 's'}`),
+    );
+  }).catch(() => {
+    body.replaceChildren(el('p', { class: 'field__hint', text: 'The archive could not be read on this device.' }));
+  });
+
+  return section;
 }
 
 /* ── field builders ─────────────────────────────────────────────────────── */

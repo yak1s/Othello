@@ -23,25 +23,45 @@ export interface FriendFlow {
   random: () => number;
 }
 
-export function openFriendFlow(flow: FriendFlow): void {
-  flow.sheets.open(chooser(flow));
+/**
+ * Every step of this flow can be left mid-flight — a search still running, an
+ * offer still gathering — and an answer that arrives afterwards must not
+ * reopen a sheet the person has already moved on from. One counter settles it:
+ * a step bumps it and aborts whatever the last step started, and every async
+ * continuation checks that its own step is still the current one.
+ */
+interface Nav { step: number; abort: AbortController | null }
+
+function advance(nav: Nav): number {
+  nav.abort?.abort();
+  nav.abort = new AbortController();
+  nav.step += 1;
+  return nav.step;
 }
 
-function chooser(flow: FriendFlow): SheetContent {
+export function openFriendFlow(flow: FriendFlow): void {
+  const nav: Nav = { step: 0, abort: null };
+  advance(nav);
+  flow.sheets.open(chooser(flow, nav));
+}
+
+function chooser(flow: FriendFlow, nav: Nav): SheetContent {
   return {
     title: 'Play a friend',
     body: el('p', { class: 't-body', text: 'Two devices, no accounts, and no server in between. Share a code and the game runs directly between you.' }),
     dismissible: true,
+    onClose: () => nav.abort?.abort(),
     actions: [
-      primary('Start a game', () => host(flow)),
-      secondary('Enter a code', () => guest(flow)),
+      primary('Start a game', () => host(flow, nav)),
+      secondary('Enter a code', () => guest(flow, nav)),
     ],
   };
 }
 
 /* ── hosting ─────────────────────────────────────────────────────────────── */
 
-function host(flow: FriendFlow): void {
+function host(flow: FriendFlow, nav: Nav): void {
+  const step = advance(nav);
   const code = makeCode(flow.random);
   const link = joinLink(code, location.href.split('#')[0]!);
   const status = el('p', { class: 't-body', text: 'Waiting for your friend to join.' });
@@ -60,34 +80,33 @@ function host(flow: FriendFlow): void {
         .catch(() => { /* the person dismissed the sheet */ });
     }));
   }
-  actions.push(secondary('Enter codes manually', () => manualHost(flow)));
+  actions.push(secondary('Enter codes manually', () => manualHost(flow, nav)));
 
   flow.sheets.open({
     title: 'Your game',
     body,
     actions,
     dismissible: true,
-    onClose: () => controller.abort(),
+    onClose: () => { if (nav.step === step) nav.abort?.abort(); },
   });
 
-  const controller = new AbortController();
-  void connectWith(flow, code, true, status, controller.signal);
+  void connectWith(flow, nav, step, code, true, status);
 }
 
-function guest(flow: FriendFlow): void {
+function guest(flow: FriendFlow, nav: Nav): void {
+  const step = advance(nav);
   const input = el('input', {
     class: 'code-input', type: 'text', inputmode: 'text', autocapitalize: 'characters',
     autocomplete: 'off', spellcheck: 'false', maxlength: '9', placeholder: 'ABC-DEF',
     'aria-label': 'The code your friend gave you',
   });
   const status = el('p', { class: 't-body' });
-  const controller = new AbortController();
 
   const join = (): void => {
     const code = parseCode(input.value);
     if (!code) { status.textContent = 'That is not a six-letter code.'; input.focus(); return; }
     status.textContent = 'Looking for your friend.';
-    void connectWith(flow, code, false, status, controller.signal);
+    void connectWith(flow, nav, step, code, false, status);
   };
   on(input, 'keydown', (event: KeyboardEvent) => { if (event.key === 'Enter') join(); });
 
@@ -97,37 +116,42 @@ function guest(flow: FriendFlow): void {
     dismissible: true,
     actions: [
       primary('Join', join),
-      secondary('Enter codes manually', () => manualGuest(flow)),
+      secondary('Enter codes manually', () => manualGuest(flow, nav)),
     ],
-    onClose: () => controller.abort(),
+    onClose: () => { if (nav.step === step) nav.abort?.abort(); },
   });
   setTimeout(() => input.focus(), 60);
 }
 
 async function connectWith(
   flow: FriendFlow,
+  nav: Nav,
+  step: number,
   code: string,
   isHost: boolean,
   status: HTMLElement,
-  signal: AbortSignal,
 ): Promise<void> {
+  const signal = nav.abort!.signal;
   try {
     const { connect } = await import('../../net/transport');
     const { transport } = await connect({
       code,
       signal,
       onStrategy: (name) => {
+        if (nav.step !== step) return;
         status.textContent = name === 'nostr'
           ? 'Looking for your friend.'
           : 'Still looking, over a second route.';
       },
     });
-    if (signal.aborted) { void transport.leave(); return; }
+    if (signal.aborted || nav.step !== step) { void transport.leave(); return; }
     flow.onConnected(transport, isHost, code);
   } catch (error) {
-    if (signal.aborted) return;
     void error;
-    showFailure(flow);
+    // The person has moved on — to the manual exchange, or out of the sheet
+    // entirely. Reporting a failure now would replace whatever they are using.
+    if (signal.aborted || nav.step !== step) return;
+    showFailure(flow, nav);
   }
 }
 
@@ -136,13 +160,13 @@ async function connectWith(
  * not allow two devices to talk directly, and getting through them needs a
  * relay we do not run — so say that, rather than blaming the person's Wi-Fi.
  */
-function showFailure(flow: FriendFlow): void {
+function showFailure(flow: FriendFlow, nav: Nav): void {
   flow.sheets.open({
     title: 'No connection',
     body: el('p', { class: 't-body', text: 'Couldn’t reach your friend. Some networks block direct connections between devices. Try the same Wi-Fi, or enter codes manually.' }),
     dismissible: true,
     actions: [
-      primary('Enter codes manually', () => manualHost(flow)),
+      primary('Enter codes manually', () => manualHost(flow, nav)),
       secondary('Play on this device instead', () => { flow.sheets.close(); flow.onPassAndPlay(); }),
     ],
   });
@@ -150,7 +174,8 @@ function showFailure(flow: FriendFlow): void {
 
 /* ── the manual exchange ─────────────────────────────────────────────────── */
 
-function manualHost(flow: FriendFlow): void {
+function manualHost(flow: FriendFlow, nav: Nav): void {
+  advance(nav);
   const offerBox = el('textarea', { class: 'blob', readonly: true, 'aria-label': 'Your code, to send to your friend' });
   const answerBox = el('textarea', { class: 'blob', placeholder: 'Paste their reply here', 'aria-label': 'Your friend’s reply' });
   const qrSlot = el('div');
@@ -193,7 +218,8 @@ function manualHost(flow: FriendFlow): void {
   };
 }
 
-function manualGuest(flow: FriendFlow): void {
+function manualGuest(flow: FriendFlow, nav: Nav): void {
+  advance(nav);
   const offerBox = el('textarea', { class: 'blob', placeholder: 'Paste their code here', 'aria-label': 'Their code' });
   const answerBox = el('textarea', { class: 'blob', readonly: true, 'aria-label': 'Your reply, to send back' });
   const qrSlot = el('div');

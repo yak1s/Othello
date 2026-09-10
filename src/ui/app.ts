@@ -227,7 +227,6 @@ export class App {
       random: () => Math.random(),
     });
     this.session = session;
-    session.start();
 
     // A move from the far side resolves whatever the screen is waiting on, so
     // the ordinary opponent loop drives the animation and the narration.
@@ -235,10 +234,34 @@ export class App {
     session.onRemoteMove((square) => { deliver?.(square); deliver = null; });
     session.onEmote((emote, mine) => this.game.showEmote(EMOTE_TEXT[emote], mine));
 
+    const opponentFor = (myColor: Color): Opponent => ({
+      kind: 'friend',
+      color: myColor === BLACK ? WHITE : BLACK,
+      label: 'Your friend',
+      variant: this.settings.get('lastVariant'),
+      allowUndo: false,
+      allowHint: false,
+      unavailableReason: 'Not available in a friend match.',
+      think: () => new Promise<Square>((resolve) => { deliver = resolve; }),
+      dispose: () => this.endMatch(),
+    });
+
+    // Seats are assigned by the host during the handshake, so the board cannot
+    // open until they arrive. Reading myColor before then gave both peers the
+    // same colour and left each waiting for the other.
+    let seated: Color | null = null;
     session.onChange((view) => {
+      if (view.myColor !== null && view.myColor !== seated) {
+        seated = view.myColor;
+        this.sheets.close();
+        this.startGame(opponentFor(view.myColor), view.game);
+        return;
+      }
+      if (seated === null) return;
+
       // A snapshot reconciled a disagreement: adopt it rather than drifting.
-      if (view.game.position.hash !== this.game.current.position.hash
-        && view.game.position.moveNumber !== this.game.current.position.moveNumber) {
+      if (view.game.position.moveNumber !== this.game.current.position.moveNumber
+        && view.game.position.hash !== this.game.current.position.hash) {
         this.game.resetTo(view.game);
       }
       if (view.problem) this.game.setStatus(view.problem);
@@ -248,22 +271,9 @@ export class App {
       } else if (view.phase === 'lost') this.offerClaim();
     });
 
-    this.sheets.close();
     this.sessionTimer = setInterval(() => session.tick(), 1000);
     void this.holdWakeLock();
-
-    const opponent: Opponent = {
-      kind: 'friend',
-      color: session.view.myColor === BLACK ? WHITE : BLACK,
-      label: 'Your friend',
-      variant: this.settings.get('lastVariant'),
-      allowUndo: false,
-      allowHint: false,
-      unavailableReason: 'Not available in a friend match.',
-      think: () => new Promise<Square>((resolve) => { deliver = resolve; }),
-      dispose: () => this.endMatch(),
-    };
-    this.startGame(opponent);
+    session.start();
   }
 
   private offerClaim(): void {

@@ -38,7 +38,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
-    const cached = await caches.match(request, { ignoreSearch: true });
+    // ignoreVary matters more than it looks. Static hosts commonly answer with
+    // `Vary: Origin`, and the Cache API honours it: addAll() stores these
+    // against a request with no Origin header, while a module script sends one,
+    // so every asset would miss and the app would be offline-broken on exactly
+    // the hosts it is meant to run on.
+    const cached = await caches.match(request, { ignoreSearch: true, ignoreVary: true });
     if (cached) return cached;
     try {
       const response = await fetch(request);
@@ -51,7 +56,8 @@ self.addEventListener('fetch', (event) => {
       // Offline and not precached: a navigation still gets the app shell, which
       // is the whole point of having one.
       if (request.mode === 'navigate') {
-        const shell = await caches.match('./index.html');
+        const shell = await caches.match('./index.html', { ignoreVary: true })
+          ?? await caches.match('./', { ignoreVary: true });
         if (shell) return shell;
       }
       throw error;

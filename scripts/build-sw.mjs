@@ -26,12 +26,18 @@ const files = walk(dist)
   .filter((f) => !SKIP.has(f))
   .sort();
 
+const template = readFileSync(new URL('sw-template.js', import.meta.url), 'utf8');
+
 const hash = createHash('sha256');
 for (const file of files) hash.update(file).update(readFileSync(join(dist, file)));
+// The worker's own code is part of its version. Without this, a fix to the
+// caching logic ships with an unchanged version and every existing install
+// keeps running the old worker — which is precisely the bug you are trying
+// to fix reaching nobody.
+hash.update(template);
 const version = hash.digest('hex').slice(0, 12);
 
 const assets = ['./', ...files.map((f) => `./${f}`)];
-const template = readFileSync(new URL('sw-template.js', import.meta.url), 'utf8');
 writeFileSync(
   join(dist, 'sw.js'),
   template.replace('__VERSION__', version).replace('__ASSETS__', JSON.stringify(assets, null, 2)),

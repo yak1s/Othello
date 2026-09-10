@@ -18,15 +18,21 @@ const fast = (variant: 'standard' | 'reverse' = 'standard'): SearchOptions => ({
 });
 
 describe('the search never plays an illegal move', () => {
-  it('across 1,000 self-play games', () => {
+  /**
+   * Brief §16 asks for a thousand self-play games. The loop yields to the event
+   * loop every so often: a multi-minute block of uninterrupted synchronous work
+   * starves vitest's progress channel, and it then reports an RPC timeout that
+   * looks like a failure but is not one.
+   */
+  it('across 1,000 self-play games', async () => {
     const search = new Search();
     const random = prng(0xa11ce);
     let moves = 0;
 
     for (let game = 0; game < 1000; game += 1) {
+      if (game % 50 === 0) await new Promise((resolve) => { setTimeout(resolve, 0); });
       let state = initial();
-      const level = ((game % 6) + 1) as Level;
-      const spec = LEVELS[level];
+      const spec = LEVELS[((game % 6) + 1) as Level];
       while (!isTerminal(state)) {
         const legal = legalMoves(state);
         if (legal.length === 0) break;

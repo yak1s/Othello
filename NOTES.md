@@ -96,3 +96,35 @@ A running log of what changed each phase and why. Design corrections live in
   brief. MQTT pulled a 372 KB chunk (112 KB gzipped); torrent does the same job
   in 0.92 KB gzipped because it shares trystero's strategy core. That is 111 KB
   saved for no loss of function.
+
+## Phases 10 and 11 — persistence, and the end-to-end pass
+
+- 21 persistence tests over an injected in-memory store, so the archive, the
+  FIFO cap, the stats reducer, migrations and export/import are all covered
+  without adding a dependency. A draw neither extends nor breaks a win streak;
+  that rule is documented in the reducer and tested both ways.
+- **The offline promise was broken, and only the end-to-end test found it.**
+  Vite's preview server answers with `Vary: Origin`. The Cache API honours
+  `Vary`, and `cache.addAll()` stores those responses against a request with no
+  `Origin` header while a module script sends one — so the shell was served from
+  cache and every asset it needed missed. Fixed with `ignoreVary`, and there is
+  now a test asserting that **no request fails at all** when offline.
+- That fix exposed a second one: the worker's version was hashed from `dist`
+  only, excluding `sw.js`. A fix to the caching logic would have shipped with an
+  unchanged version and reached nobody. The template is now part of its own hash.
+- Three more real bugs came out of driving the multiplayer UI for real:
+  - `gathered()` waited the full ICE timeout even when candidates were ready,
+    and some networks never report gathering as complete at all. It now cuts off
+    once the candidates stop arriving — under a second instead of four.
+  - The manual blob's round-trip re-added a line terminator to an SDP that
+    already had one, and the blank line was rejected with nothing but "Invalid
+    SDP line" to go on. There is a unit test with a real captured offer now.
+  - The background search kept running after the person switched to the manual
+    exchange, then replaced the sheet they were using with a failure notice.
+  - Seats were read before the handshake assigned them, so **both** peers got
+    the same colour and each waited for the other.
+- The end-to-end suite is four tests: a full game played offline, an assertion
+  that nothing hits the network, CLS below 0.01, and two tabs playing in sync
+  over a real WebRTC data channel with the offer and answer carried by hand.
+  The trystero path needs live relays, which this sandbox blocks, so it is not
+  covered there — the part that is ours is.
