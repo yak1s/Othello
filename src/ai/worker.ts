@@ -11,15 +11,12 @@
 import { Search, type SearchOptions } from './search';
 import { CORNERS, LEVELS, chooseMove, searchOptionsFor } from './levels';
 import { bookMove } from './book';
-import { CORNER_REASON, CORNER_SQUARES, REASONS, dominantTerm, terms } from './eval';
-import { createFastBoard } from './fastboard';
 import { WIN_SCORE } from './eval';
-import { apply, isLegal, legalMoves, notation } from '../engine';
-import { BLACK, type PositionState, type Square } from '../engine/types';
+import { isLegal, legalMoves, notation } from '../engine';
+import type { PositionState } from '../engine/types';
 import type { Request, Response } from './messages';
 
 const search = new Search();
-const scratchBoard = createFastBoard();
 
 let currentId = 0;
 let stopRequested = false;
@@ -37,8 +34,7 @@ self.onmessage = (event: MessageEvent<Request>): void => {
 };
 
 async function handle(request: Exclude<Request, { type: 'stop' }>): Promise<void> {
-  if (request.type === 'think') await think(request);
-  else await hint(request);
+  await think(request);
 }
 
 async function think(request: Extract<Request, { type: 'think' }>): Promise<void> {
@@ -86,20 +82,6 @@ async function think(request: Extract<Request, { type: 'think' }>): Promise<void
   });
 }
 
-async function hint(request: Extract<Request, { type: 'hint' }>): Promise<void> {
-  const legal = legalMoves(request.position);
-  if (legal.length === 0) { post({ type: 'aborted', id: request.id }); return; }
-
-  // The hint is the same engine at level 4 on a 400ms budget, reusing this same
-  // worker — a second one is never spawned.
-  const options: SearchOptions = { ...searchOptionsFor(4, request.variant), budgetMs: 400 };
-  const ranked = await deepen(request.position, options, request.id);
-  if (!ranked) return;
-
-  const square = ranked[0]!.square;
-  post({ type: 'hint', id: request.id, square, reason: reasonFor(request.position, square) });
-}
-
 /** Runs the plan one depth at a time, yielding to the message queue between. */
 async function deepen(
   position: PositionState,
@@ -123,21 +105,6 @@ async function deepen(
 }
 
 const yieldToQueue = (): Promise<void> => new Promise((resolve) => { setTimeout(resolve, 0); });
-
-/** One line, drawn from whichever evaluation term the move moved most. */
-function reasonFor(position: PositionState, square: Square): string {
-  if (CORNER_SQUARES.has(square)) return CORNER_REASON;
-  const load = (state: PositionState): void => {
-    const mover = state.turn === BLACK ? state.black : state.white;
-    const other = state.turn === BLACK ? state.white : state.black;
-    scratchBoard.set(0, mover, other);
-  };
-  load(position);
-  const before = terms(scratchBoard, 0);
-  load(apply(position, square).state);
-  const after = terms(scratchBoard, 0);
-  return REASONS[dominantTerm(before, after)];
-}
 
 /** splitmix32 — the caller supplies the seed, so a game is reproducible. */
 function seeded(seed: number): () => number {

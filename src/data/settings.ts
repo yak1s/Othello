@@ -20,10 +20,10 @@ export const DEFAULT_SETTINGS: Settings = {
   colorblindMarking: false,
   rotateBetweenTurns: false,
   scoreMode: 'tournament',
-  hints: true,
   undoAllowance: 'unlimited',
   motion: 'full',
-  lastLevel: 3,
+  unlockedLevel: 1,
+  lastLevel: 1,
   lastVariant: 'standard',
   installPromptDismissed: false,
 };

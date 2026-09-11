@@ -239,6 +239,15 @@ no card, no icon, no chevron-plus-arrow-glyph clutter — one 8px `--text-quiet`
 trailing edge. Pressed: row fills with `--rule` at 24% and the label shifts 2px toward the leading
 edge, as if pressed into the table.
 
+### PIN and PIN field
+The four digits are the whole of the connect flow, so they are set at the display size — 56/700,
+`--f-display`, tabular figures — spaced a whole space per digit in the text and a further `.06em`
+in CSS, over a 2px `--brass` rule. Nothing else on that sheet is above 17px. The field the other
+person types into is the same shape one step down (34/700 on `--bone`, `.5em` tracking, centred with
+a matching `text-indent` so the trailing space does not throw the optical centre), and it has **no
+`maxlength`** — see C27. The live status under either is `.waiting`: 13px `--lacquer`, set apart by
+`--s4`, with a reserved line height so the sheet does not jump when it changes.
+
 ### Score capsule
 `--r-pill` on `--card` paper, height 40, padding `0 --s3`. A 14px disc mark (`--ink` or `--bone`
 with its rim), the player's name at 15/400, and the count at 22/700 display, tabular. The active
@@ -260,11 +269,11 @@ update notice. Slides in under the relevant capsule; dismisses itself.
 One at a time. Game-over sheet leaves the final board visible above it.
 
 ### Thumb bar
-`--ink` ground, `--thumb-h: 56`, 1px `--rule` on its top edge, exactly four equal slots. Only
-frequent, reversible actions: Undo, Hint, Moves, and the overflow sheet. Resign, New game, Rematch
-and Settings live **inside** the sheet — never one tap from a thumb. In an online match, Undo and
-Hint render disabled with a reason on tap; they are never hidden, because hiding them would shift
-the layout between modes.
+`--ink` ground, `--thumb-h: 56`, 1px `--rule` on its top edge, exactly three equal slots. Only
+frequent, reversible actions: Undo, Moves, and the overflow sheet. Resign, New game, Rematch
+and Settings live **inside** the sheet — never one tap from a thumb. In an online match, Undo
+renders unavailable with a reason on tap; it is never hidden, because hiding it would shift
+the layout between modes. (The fourth slot was Hint until C23 removed it.)
 
 ### Disc
 `--r-pill`, inset `--disc-inset: 3px` from the cell edge, `--ink` or `--bone` face, 1px inset rim
@@ -363,7 +372,7 @@ reason that forced it.
   competing with the paper fill (already the brightest thing on a dark ground), and leaves the
   bottom edge free for the loading rule.
 - **C8 — `--disabled` was raised to `#9A978E` (Lc 45.2).** The first value, card at 40%, measured
-  Lc 22.9. Online matches render Undo and Hint disabled *with a reason on tap* (brief §5.2), so a
+  Lc 22.9. Online matches render Undo unavailable *with a reason on tap* (brief §5.2), so a
   disabled label has to stay readable — it is information, not decoration. Disabled controls remain
   exempt from the 75 body target; 45.2 is the deliberate floor.
 - **C9 — There is one turn indicator, owned by the score strip.** The brass rule slides between the
@@ -439,3 +448,61 @@ reason that forced it.
   above the cells it also textured the legal-move dots and the last-move marker, which are
   information and should not sit under noise. And each cell offsets the tile by its own place on
   the board, so the weave runs continuously across the felt instead of restarting in every square.
+- **C23 — Hints are gone, and the thumb bar is three slots.** Removed on request, and the removal
+  goes all the way down: the search's hint entry point, the eval's `dominantTerm` and its table of
+  reasons, the worker message pair, the Assist toggle and the `hints` setting. A feature half-removed
+  is worse than one kept, because the bytes still ship. The thumb bar keeps four *sized* slots'
+  worth of tap target across three, so Undo, Moves and the overflow sheet each get wider rather than
+  the bar getting emptier.
+- **C24 — A locked level is set into the paper, not dimmed.** `--disabled` was tuned against `--ink`
+  and measures Lc 38.7 on `--card`, below even the large/bold floor, so dimming a locked row would
+  have made the level's *name* unreadable — and the name is the one thing a person needs in order to
+  know what they are working towards. Same medicine as C1: the label stays `--ink`, the row is
+  recessed with `--press` (Lc 75.3 for the label, 10.1 for the recess itself against paper), weight
+  drops 500 → 400, and the state is said in a word rather than implied. The row is a real, enabled
+  button: tapping it says *Beat Casual to open this* rather than swallowing the tap.
+- **C25 — The sound is rebuilt around an envelope, a room and two layers.** Asked for smoother, higher
+  quality sound, and every fix turned out to be a defect rather than a taste. *One:* every burst
+  began with `setValueAtTime(gain)` — an instantaneous jump, which is a step in the waveform, which
+  is a click, on every disc placed. Every envelope now opens and closes over at least `MIN_FADE`
+  (2.2 ms) and reaches *exactly* zero before its source is stopped; `src/audio/envelope.test.ts`
+  replays the automation schedule in arithmetic and fails the build if any of them does not.
+  *Two:* the app had no room at all. A 0.9-second impulse is synthesised at unlock — noise under an
+  exponential decay, darkened as it falls, the two channels generated independently so the tail has
+  width — and every voice sends to it. It costs nothing to ship and it is the difference between
+  sounds in a space and sounds stuck to the glass. *Three:* percussion is a bright transient plus a
+  body that falls in pitch, and the pitched voices are struck bars (a fundamental with two
+  inharmonic partials, each dying faster than the one below) rather than triangle-wave beeps.
+  The noise is pink rather than white and is read from a random offset every time, so no two
+  placements are the same sound. And a placement is panned to its file, narrowly — the board is
+  eight squares wide, not a stage.
+- **C26 — Three defects the measurements found that review had not.** The flip wave charged every
+  disc's voice budget to the instant it was *scheduled* rather than the instant it would *sound*, so
+  a wave longer than six discs went silent after the sixth — for the entire life of the feature.
+  The reverb ran un-normalised, and the convolution of a 0.9-second tail pushed the game-over figure
+  to 1.02 full scale, i.e. clipping. And the UI tap sat 37 dB under the game-over figure, which on a
+  phone speaker is not quiet, it is missing. The mix now spans 24 dB from `end` to `tap`, and
+  `tests/e2e/audio.spec.ts` renders every voice through a real browser and fails on clipping, on a
+  DC offset, on a tail that never ends, on a mono room, on a pan that does not place, and on any
+  voice more than 27 dB from the loudest or below −46 dBFS.
+- **C27 — The PIN field has no `maxlength`, and that is deliberate.** The host's sheet shows the PIN
+  spaced — *9 8 7 6* — because that is how four digits get read out across a table. Which means the
+  thing a person copies is seven characters, and a `maxlength` of four cut it to `98 7` before the
+  input handler ever saw it: the field then held **987**, and the join went looking for a room three
+  digits long. A wrong-PIN bug with no wrong PIN anywhere in it. The limit now lives in the handler,
+  after the non-digits are stripped, so the PIN works pasted, spoken, spaced, or with the sentence
+  still wrapped around it. The join fires once per complete PIN rather than once per keystroke after
+  the fourth, and re-arms if a digit is corrected.
+- **C28 — The connect flow has real styles now.** `.qr`, `.code` and `.code-input` went out with the
+  QR encoder and nothing replaced them, so the PIN was rendering at body size on an unstyled input.
+  It is the whole of that sheet, so it is set at the display size over a brass rule, with the field
+  a step below it in the same shape. Its live status is `.waiting` — a size down, set apart, and
+  with its line height reserved so the sheet does not jump when the text changes.
+- **C29 — A sheet says what should hold focus; it does not guess and get corrected.** `open()` focused
+  the first button, and the PIN screen tried to put that right with a 60-millisecond timer
+  afterwards. Two frames apart, and which one won depended on how fast the page had loaded: about
+  half the time the Join button took the focus back and digits typed straight away went nowhere.
+  A person meets this as *I opened the keyboard, typed my friend's PIN, and nothing happened* — and
+  it was invisible to every test until two devices were driven for real. `SheetContent` now carries
+  `initialFocus`, so the sheet that exists to take four digits opens with the field focused, said
+  once, in the place that decides it.

@@ -149,7 +149,9 @@
 
 .thumbbar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Three slots since Hint was removed: Undo, Moves, and the overflow sheet.
+     Destructive and rare actions still live inside the sheet, never here. */
+  grid-template-columns: repeat(3, 1fr);
   height: var(--thumb-h);
   border-top: var(--hair) solid var(--rule);
 }

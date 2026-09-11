@@ -189,7 +189,7 @@ export class Search {
     return Math.max(0, this.deadline - this.now());
   }
 
-  /** The whole search, synchronously. Used by tests, the bench and hints. */
+  /** The whole search, synchronously. Used by tests and the bench. */
   search(state: PositionState, options: SearchOptions): SearchResult {
     const { moves, empties } = this.begin(state, options);
     if (moves.length === 0) {

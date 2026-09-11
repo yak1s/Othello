@@ -13,10 +13,8 @@ import type { Color, Square, Variant } from '../engine/types';
 /** Bumped whenever a message shape changes. Peers refuse a mismatched major. */
 export const PROTOCOL_VERSION = 1;
 
-/** Room codes: 6 characters, grouped ABC-DEF for display. */
-export const CODE_LENGTH = 6;
-/** 26 letters minus the seven that are misread aloud or on screen: 0 O 1 I L S 5. */
-export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRTUVWXYZ';
+/** Rooms are named by a four-digit PIN. See ./pin.ts for why four. */
+export { PIN_LENGTH } from './pin';
 
 export const HEARTBEAT_MS = 3_000;
 export const GRACE_MS = 30_000;

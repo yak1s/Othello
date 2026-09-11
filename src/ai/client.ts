@@ -2,8 +2,8 @@
    The main-thread side of the engine (brief §7).
 
    Exactly one worker for the whole app, created on first use and reused for
-   hints — a second one is never spawned. The worker is loaded lazily so the
-   board reaches interactive without the search code in the bundle at all.
+   every move — a second one is never spawned. The worker is loaded lazily so
+   the board reaches interactive without the search code in the bundle at all.
    ========================================================================= */
 
 import type { Request, Response } from './messages';
@@ -78,14 +78,6 @@ export class EngineClient {
     const elapsed = Date.now() - started;
     if (elapsed < MINIMUM_BEAT_MS) await pause(MINIMUM_BEAT_MS - elapsed);
     return answer.square;
-  }
-
-  async hint(position: PositionState, variant: Variant): Promise<{ square: Square; reason: string }> {
-    const id = this.nextId++;
-    const answer = await this.send<Extract<Response, { type: 'hint' }>>({
-      type: 'hint', id, position, variant,
-    });
-    return { square: answer.square, reason: answer.reason };
   }
 
   /** Abandon whatever is running. The worker sees this between depths. */

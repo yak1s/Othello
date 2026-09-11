@@ -29,7 +29,10 @@ interface Room {
 }
 
 interface TrysteroModule {
-  joinRoom(config: { appId: string; password?: string }, roomId: string): Room;
+  joinRoom(
+    config: { appId: string; password?: string; relayUrls?: string[] },
+    roomId: string,
+  ): Room;
   selfId: string;
 }
 
@@ -78,11 +81,18 @@ export interface ConnectResult {
 }
 
 export interface ConnectOptions {
-  code: string;
+  /** The four-digit PIN. It names the room and keys its encryption. */
+  pin: string;
   /** Called as each strategy is tried, so the UI can say what is happening. */
   onStrategy?: (name: StrategyName) => void;
   signal?: AbortSignal;
   fallbackMs?: number;
+  /**
+   * Override the signalling relays. The brief allows a self-hosted relay, and
+   * the end-to-end test uses one so the whole PIN path can be proved without
+   * depending on a stranger's server being up.
+   */
+  relayUrls?: readonly string[];
 }
 
 /**
@@ -98,7 +108,16 @@ export async function connect(options: ConnectOptions): Promise<ConnectResult> {
     options.onStrategy?.(name);
     const module = await loadStrategy(name);
     const transport = new RoomTransport(module.selfId, name);
-    transport.attach(module.joinRoom({ appId: APP_ID }, options.code));
+    // The PIN is the password as well as the room name, so what crosses the
+    // signalling relay is readable only by someone who was told the number.
+    transport.attach(module.joinRoom(
+      {
+        appId: APP_ID,
+        password: options.pin,
+        ...(options.relayUrls ? { relayUrls: [...options.relayUrls] } : {}),
+      },
+      options.pin,
+    ));
     joined.push(transport);
     return transport;
   };

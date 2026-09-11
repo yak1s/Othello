@@ -40,7 +40,6 @@ export function settingsSheet(store: SettingsStore, toast: Toast): SheetContent 
     ]),
 
     group('Assist', [
-      toggle(store, 'hints', 'Hints'),
       choice<UndoAllowance>(store, 'undoAllowance', 'Undo', [
         ['unlimited', 'Unlimited'], ['three', '3 per game'], ['off', 'Off'],
       ]),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MatchSession } from './session';
-import { formatCode, codeFromLink, joinLink, makeCode, parseCode, ALPHABET } from './codes';
+import { PIN_LENGTH, formatPin, joinLink, makePin, parsePin, pinFromLink } from './pin';
 import { GRACE_MS, type Emote, type Message, type Transport } from './protocol';
 import { games, legalMoves, notation, rules } from '../engine';
 import { prng } from '../engine/testkit';
@@ -106,50 +106,55 @@ function playMoves(p: Pair, count: number): Square[] {
 
 /* ── codes ───────────────────────────────────────────────────────────────── */
 
-describe('room codes', () => {
-  it('leaves out every character that gets misread', () => {
-    for (const ch of ['0', 'O', '1', 'I', 'L', 'S', '5']) expect(ALPHABET).not.toContain(ch);
-    expect(ALPHABET.length).toBe(22);
-  });
-
-  it('generates six characters from the alphabet, using all of it', () => {
+describe('room PINs', () => {
+  it('is four digits', () => {
     const random = prng(0xc0de);
-    const seen = new Set<string>();
-    for (let i = 0; i < 4000; i += 1) {
-      const code = makeCode(random);
-      expect(code).toHaveLength(6);
-      for (const ch of code) { expect(ALPHABET).toContain(ch); seen.add(ch); }
+    for (let i = 0; i < 2000; i += 1) {
+      const pin = makePin(random);
+      expect(pin).toHaveLength(PIN_LENGTH);
+      expect(pin).toMatch(/^\d{4}$/);
     }
-    expect(seen.size).toBe(ALPHABET.length);
   });
 
-  it('groups for reading and parses back', () => {
-    expect(formatCode('ABCDEF')).toBe('ABC-DEF');
-    expect(parseCode('ABC-DEF')).toBe('ABCDEF');
-    expect(parseCode('abcdef')).toBe('ABCDEF');
-    expect(parseCode('  abc def ')).toBe('ABCDEF');
-    expect(parseCode('a-b-c-d-e-f')).toBe('ABCDEF');
+  it('draws uniformly across all ten thousand rooms', () => {
+    const random = prng(7);
+    const draws = 20_000;
+    const seen = new Set<string>();
+    for (let i = 0; i < draws; i += 1) seen.add(makePin(random));
+
+    // Coupon collector: n draws from N slots is expected to touch
+    // N(1 - e^(-n/N)) of them, which for 20,000 draws over 10,000 rooms is
+    // about 8,647. A generator biased towards some digits would fall short of
+    // that, and one that never reached a decade would fall a long way short.
+    const expected = 10_000 * (1 - Math.exp(-draws / 10_000));
+    expect(seen.size).toBeGreaterThan(expected * 0.98);
+    expect(seen.size).toBeLessThan(expected * 1.02);
+
+    // Every leading digit appears, so 0000–0999 are really reachable.
+    const leading = new Set([...seen].map((pin) => pin[0]));
+    expect(leading.size).toBe(10);
   });
 
-  it('folds the look-alikes a person actually types', () => {
-    expect(parseCode('NPQ0RT')).toBe(parseCode('NPQQRT'));
-    expect(parseCode('NPQORT')).toBe(parseCode('NPQQRT'));
-    expect(parseCode('JMN1PQ')).toBe(parseCode('JMNJPQ'));
-    expect(parseCode('ZMN5PQ')).toBe(parseCode('ZMNZPQ'));
+  it('reads what a person actually types', () => {
+    expect(parsePin('1234')).toBe('1234');
+    expect(parsePin('12 34')).toBe('1234');
+    expect(parsePin(' 1-2-3-4 ')).toBe('1234');
+    expect(parsePin('0007')).toBe('0007');
   });
 
-  it('rejects the wrong length and unknown characters', () => {
-    expect(parseCode('ABCDE')).toBeNull();
-    expect(parseCode('ABCDEFG')).toBeNull();
-    expect(parseCode('ABC!EF')).toBeNull();
-    expect(parseCode('')).toBeNull();
+  it('rejects the wrong number of digits', () => {
+    for (const bad of ['123', '12345', '', 'abcd', '12a4']) expect(parsePin(bad)).toBeNull();
+  });
+
+  it('spaces the digits for reading aloud', () => {
+    expect(formatPin('1234')).toBe('1 2 3 4');
   });
 
   it('builds and reads a deep link', () => {
-    const link = joinLink('ABCDEF', 'https://example.com/kissa/');
-    expect(link).toBe('https://example.com/kissa/#j=ABC-DEF');
-    expect(codeFromLink(link)).toBe('ABCDEF');
-    expect(codeFromLink('https://example.com/#other=1')).toBeNull();
+    const link = joinLink('4071', 'https://example.com/kissa/');
+    expect(link).toBe('https://example.com/kissa/#j=4071');
+    expect(pinFromLink(link)).toBe('4071');
+    expect(pinFromLink('https://example.com/#other=1')).toBeNull();
   });
 });
 

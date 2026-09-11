@@ -172,6 +172,19 @@
 .row:active:not(:disabled) .row__label { transform: translateX(-2px); }
 .row:disabled { color: var(--disabled); cursor: not-allowed; }
 
+/* A locked level. Not dimmed — a dimmed label is unreadable on paper (C24) and
+   the level's name is still information. It is set into the paper instead, and
+   it says so in a word. The row stays a real button: tapping it explains why. */
+.row[data-unavailable='true'] { background: var(--press); font-weight: 400; }
+@media (hover: hover) { .row[data-unavailable='true']:hover { background: var(--press); } }
+.row[data-unavailable='true']:active { background: var(--press); }
+.row__note {
+  flex: none;
+  font-size: var(--fs-13);
+  letter-spacing: .04em;
+  color: var(--ink);
+}
+
 /* ── Hairline divider ────────────────────────────────────────────────────── */
 
 .rule { height: var(--hair); background: var(--rule); border: 0; }
@@ -285,35 +298,59 @@ input[type='range']::-moz-range-thumb {
 
 /* ── Multiplayer ─────────────────────────────────────────────────────────── */
 
-.qr { display: block; margin: 0 auto; border-radius: var(--r-none); }
-
 .centred { text-align: center; }
 
-/* The room code, set large and spaced so it can be read out across a table. */
-.code {
+/* The PIN, set at the display size and spaced by a whole em, because it exists
+   to be read out across a table and typed on another device. Tabular figures so
+   the four digits are one shape wide, and a brass rule under it so it reads as
+   the thing on the sheet rather than as a heading. */
+.pin {
+  margin: var(--s4) 0 var(--s3);
+  padding-bottom: var(--s2);
+  border-bottom: 2px solid var(--brass);
   font-family: var(--f-display);
   font-weight: 700;
-  font-size: var(--fs-34);
+  font-size: var(--fs-56);
   line-height: var(--lh-display);
   text-align: center;
   font-variant-numeric: tabular-nums;
+  /* The gap between digits is already in the text — one space per digit — so
+     this only opens it a little further rather than doubling it. */
+  letter-spacing: .06em;
 }
 
-.code-input {
+.pin-input {
+  display: block;
   width: 100%;
-  height: 56px;
-  padding: 0 var(--s3);
+  margin: var(--s4) 0 var(--s3);
+  padding: var(--s2) 0;
   background: var(--bone);
   color: var(--ink);
   border: var(--hair) solid var(--card-edge);
   border-radius: var(--r-none);
   font-family: var(--f-display);
   font-weight: 700;
-  font-size: var(--fs-22);
+  font-size: var(--fs-34);
+  line-height: var(--lh-display);
   text-align: center;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5em;
+  /* The letter-spacing hangs off the last digit, which throws the centring. */
+  text-indent: .5em;
 }
-.code-input:focus-visible { border-color: var(--brass); }
+/* The live status under a PIN. Set apart from the instruction above it, and a
+   size down, so it reads as the sheet reporting rather than as a third line of
+   the sentence someone is trying to read out. */
+.waiting {
+  margin-top: var(--s4);
+  font-size: var(--fs-13);
+  color: var(--lacquer);
+  text-align: center;
+  min-height: calc(var(--fs-13) * var(--lh-body));
+}
+
+.pin-input::placeholder { color: var(--disabled); }
+.pin-input:focus-visible { border-color: var(--brass); }
 
 .blob {
   width: 100%;

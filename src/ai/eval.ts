@@ -4,8 +4,8 @@
    Everything is scored from the mover's point of view and weighted by phase,
    because disc count is nearly worthless before about fifty discs: holding more
    of them in the middlegame usually means you have fewer moves left, which is
-   how beginners lose. The terms are exposed individually as well as summed,
-   because the hint feature names whichever one dominated.
+   how beginners lose. The terms are exposed individually as well as summed, so
+   a change to one can be read on its own when tuning.
    ========================================================================= */
 
 import { neighboursHiLo, popcount64, type FastBoard, type Side } from './fastboard';
@@ -234,34 +234,5 @@ function parityOf(emptyHi: number, emptyLo: number, empties: number): number {
   // the side to move. More odd regions than even is worth having.
   return odd - even === 0 ? 0 : Math.sign(odd - even);
 }
-
-/** Which term dominated, for the hint's one-line reason. */
-export function dominantTerm(before: EvalTerms, after: EvalTerms): keyof Omit<EvalTerms, 'total'> {
-  const keys: (keyof Omit<EvalTerms, 'total'>)[] =
-    ['stability', 'mobility', 'frontier', 'potential', 'parity', 'squares', 'discs'];
-  let best = keys[0]!;
-  let bestDelta = -Infinity;
-  for (const key of keys) {
-    // `after` is the opponent's view of the resulting position, so a term that
-    // improved for us shows up as a drop for them.
-    const delta = -(after[key]) - (-before[key]);
-    if (delta > bestDelta) { bestDelta = delta; best = key; }
-  }
-  return best;
-}
-
-export const REASONS: Record<keyof Omit<EvalTerms, 'total'>, string> = {
-  stability: 'Takes ground they cannot turn over',
-  mobility: 'Keeps your options open',
-  frontier: 'Stays off the front line',
-  potential: 'Leaves them nothing safe',
-  parity: 'Takes the last move in that corner of the board',
-  squares: 'Holds a square worth having',
-  discs: 'Wins discs where they still count',
-};
-
-/** Corner moves get named for what they are, whatever the eval says. */
-export const CORNER_SQUARES: ReadonlySet<number> = new Set([0, 7, 56, 63]);
-export const CORNER_REASON = 'Takes the corner';
 
 export type { Side };

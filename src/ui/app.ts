@@ -13,12 +13,13 @@ import { settingsSheet } from './screens/settings';
 import { helpSheet } from './screens/help';
 import { openFriendFlow } from './screens/friend';
 import { MatchSession } from '../net/session';
-import { formatCode } from '../net/codes';
+import { formatPin, pinFromLink } from '../net/pin';
 import type { Emote, Transport } from '../net/protocol';
 import { SettingsStore, applyDocumentSettings } from '../data/settings';
 import { clearSavedGame, loadSavedGame, saveGame } from '../data/saved';
 import { games, notation, rules, score } from '../engine';
 import { BLACK, WHITE, type Color, type Game, type Square } from '../engine/types';
+import { LEVEL_NAMES, afterGame, ladderLine, lockedReason } from '../data/ladder';
 import type { Level, SavedGame } from '../data/types';
 
 type Route = 'home' | 'game';
@@ -132,24 +133,28 @@ export class App {
   /* ── opponents ───────────────────────────────────────────────────────── */
 
   private openComputerSheet(): void {
-    const levels: [Level, string, string][] = [
-      [1, 'Beginner', 'Looks one move ahead and will happily give you a corner.'],
-      [2, 'Casual', 'Sees three moves. Makes ordinary mistakes.'],
-      [3, 'Club', 'Counts mobility properly and rarely blunders.'],
-      [4, 'Strong', 'Plays the edges well and punishes a loose corner.'],
-      [5, 'Expert', 'Solves the last sixteen squares exactly.'],
-      [6, 'Merciless', 'No cap on depth, and the endgame is exact.'],
-    ];
+    const unlocked = this.settings.get('unlockedLevel');
 
     const list = el('div');
-    for (const [level, name, blurb] of levels) {
-      const row = el('button', { type: 'button', class: 'row' }, [
+    for (const [level, blurb] of BLURBS) {
+      const reason = lockedReason(unlocked, level);
+      const open = reason === null;
+      const name = LEVEL_NAMES[level];
+      const row = el('button', {
+        type: 'button',
+        class: 'row',
+        // Genuinely enabled, so a screen reader is told the same thing a finger
+        // is: tap it and it explains itself, rather than going quiet (C10).
+        ...(open ? {} : { 'data-unavailable': 'true', 'aria-label': `${level}. ${name}. ${reason}` }),
+      }, [
         el('span', { class: 'row__label' }, [
           el('span', { text: `${level}. ${name}` }),
           el('span', { class: 'u-sr', text: blurb }),
         ]),
+        ...(open ? [] : [el('span', { class: 'row__note', text: 'Locked' })]),
       ]);
       on(row, 'click', () => {
+        if (!open) { this.toast.show(reason!); return; }
         this.sheets.close();
         this.settings.set('lastLevel', level);
         const variant = reverseToggle.checked ? 'reverse' : 'standard';
@@ -160,18 +165,21 @@ export class App {
     }
 
     // Reverse Reversi is tucked in here and off by default, exactly as specified.
-    const reverseToggle = el('input', { type: 'checkbox', id: 'reverse-variant' });
+    // Label first, control last, like every other switch in the app.
+    const reverseToggle = el('input', { type: 'checkbox', class: 'switch', id: 'reverse-variant' });
     const reverse = el('label', { class: 'field', for: 'reverse-variant' }, [
-      reverseToggle,
       el('span', {}, [
         el('span', { class: 'field__label', text: 'Reverse Reversi' }),
         el('span', { class: 'field__hint', text: 'Fewest discs wins.' }),
       ]),
+      reverseToggle,
     ]);
+
+    const ladder = el('p', { class: 't-body', text: ladderLine(unlocked) });
 
     this.sheets.open({
       title: 'Play the computer',
-      body: el('div', {}, [list, reverse]),
+      body: el('div', {}, [ladder, list, reverse]),
       dismissible: true,
     });
   }
@@ -187,40 +195,41 @@ export class App {
       }
       return client;
     };
-    const names: Record<Level, string> = {
-      1: 'Beginner', 2: 'Casual', 3: 'Club', 4: 'Strong', 5: 'Expert', 6: 'Merciless',
-    };
     return {
       kind: 'computer',
       color: playerColor === 0 ? 1 : 0,
-      label: names[level],
+      label: LEVEL_NAMES[level],
+      level,
       variant,
       allowUndo: true,
-      allowHint: true,
       think: async (game) => (await ensure())
         .think(game.position, level, variant, notation.serialize(game)),
-      hint: async (game) => (await ensure()).hint(game.position, variant),
       dispose: () => { client?.dispose(); client = null; },
     };
   }
 
-  private openFriendSheet(code?: string): void {
+  private openFriendSheet(pin?: string): void {
+    // A self-hosted signalling relay can be named on the URL. The brief allows
+    // one, and the end-to-end test uses it to prove the whole PIN path without
+    // depending on a stranger's server being up.
+    const relay = new URLSearchParams(location.search).get('relay');
     openFriendFlow({
       sheets: this.sheets,
       toast: this.toast,
       random: () => Math.random(),
+      ...(relay ? { relayUrls: relay.split(',') } : {}),
       onPassAndPlay: () => this.startGame(passAndPlay(this.settings.get('lastVariant'))),
       onConnected: (transport, isHost, joined) => this.beginMatch(transport, isHost, joined),
-    });
-    if (code) this.toast.show(`Joining ${formatCode(code)}.`);
+    }, pin);
+    if (pin) this.toast.show(`Joining ${formatPin(pin)}.`);
   }
 
   /* ── a match with another device ─────────────────────────────────────── */
 
-  private beginMatch(transport: Transport, isHost: boolean, code: string): void {
+  private beginMatch(transport: Transport, isHost: boolean, pin: string): void {
     this.endMatch();
     const session = new MatchSession({
-      transport, rules, notation, games, isHost, code,
+      transport, rules, notation, games, isHost, code: pin,
       variant: this.settings.get('lastVariant'),
       hostSeat: 'coin',
       now: () => Date.now(),
@@ -240,7 +249,6 @@ export class App {
       label: 'Your friend',
       variant: this.settings.get('lastVariant'),
       allowUndo: false,
-      allowHint: false,
       unavailableReason: 'Not available in a friend match.',
       think: () => new Promise<Square>((resolve) => { deliver = resolve; }),
       dispose: () => this.endMatch(),
@@ -314,28 +322,31 @@ export class App {
       transcript: notation.serialize(game),
       variant: opponent.variant,
       mode: opponent.kind,
-      opponent: opponent.kind === 'computer' ? this.settings.get('lastLevel') : null,
+      opponent: opponent.level ?? null,
       playerColor: opponent.color === null ? null : opponent.color === 0 ? 1 : 0,
       startedAt: this.startedAt,
       savedAt: Date.now(),
     });
   }
 
-  private onFinished(game: Game, opponent: Opponent): void {
+  private onFinished(game: Game, opponent: Opponent): string | null {
     clearSavedGame();
     this.finishedThisSession = true;
+    const result = rules.outcome(game.position, opponent.variant);
+    const winner = result?.kind === 'win' ? result.winner : 'draw';
+    const playerColor = opponent.color === null ? null : opponent.color === BLACK ? WHITE : BLACK;
+
     void import('../data/archive').then(({ recordFinishedGame }) => {
       const s = score(game.position);
-      const result = rules.outcome(game.position, opponent.variant);
       void recordFinishedGame({
         transcript: notation.serialize(game),
         variant: opponent.variant,
         mode: opponent.kind,
-        opponent: opponent.kind === 'computer' ? this.settings.get('lastLevel') : opponent.label,
-        playerColor: opponent.color === null ? null : opponent.color === 0 ? 1 : 0,
+        opponent: opponent.level ?? (opponent.kind === 'friend' ? opponent.label : null),
+        playerColor,
         blackDiscs: s.black,
         whiteDiscs: s.white,
-        winner: result?.kind === 'win' ? result.winner : 'draw',
+        winner,
         startedAt: this.startedAt,
         finishedAt: Date.now(),
         durationMs: Date.now() - this.startedAt,
@@ -344,6 +355,18 @@ export class App {
       // The archive is a convenience. Losing a record must never surface as an
       // error over a finished game.
     });
+
+    return this.maybeUnlock(opponent, winner === playerColor);
+  }
+
+  /** The ladder rule itself lives in data/ladder.ts, where it is unit-tested. */
+  private maybeUnlock(opponent: Opponent, playerWon: boolean): string | null {
+    if (opponent.kind !== 'computer' || opponent.level === undefined) return null;
+    const step = afterGame(this.settings.get('unlockedLevel'), opponent.level, playerWon);
+    if (step.note === null) return null;
+    this.settings.set('unlockedLevel', step.unlockedLevel);
+    this.settings.set('lastLevel', step.unlockedLevel);
+    return step.note;
   }
 
   /* ── sheets ──────────────────────────────────────────────────────────── */
@@ -401,12 +424,22 @@ export class App {
   }
 
   private handleDeepLink(): void {
-    const match = /[#&]j=([A-Za-z-]{6,9})/.exec(location.hash);
-    if (!match) return;
+    const pin = pinFromLink(location.hash);
+    if (!pin) return;
     history.replaceState(null, '', location.pathname + location.search);
-    this.openFriendSheet(match[1] ?? undefined);
+    this.openFriendSheet(pin);
   }
 }
+
+/** What each level plays like. The names themselves live with the ladder. */
+const BLURBS: readonly (readonly [Level, string])[] = [
+  [1, 'Looks one move ahead and will happily give you a corner.'],
+  [2, 'Sees three moves. Makes ordinary mistakes.'],
+  [3, 'Counts mobility properly and rarely blunders.'],
+  [4, 'Plays the edges well and punishes a loose corner.'],
+  [5, 'Solves the last sixteen squares exactly.'],
+  [6, 'No cap on depth, and the endgame is exact.'],
+];
 
 const EMOTE_TEXT: Record<Emote, string> = {
   'good-move': 'Good move',

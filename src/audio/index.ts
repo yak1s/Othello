@@ -4,9 +4,18 @@
 import { AudioEngine } from './engine';
 import { Haptics } from './haptics';
 import type { VoiceName } from './voices';
+import type { PlayOptions } from './engine';
 
-export { VOICES, flipWavePlan, type VoiceName, type Voice } from './voices';
-export { AudioEngine } from './engine';
+export { ROOM, VOICES, flipWavePlan, type VoiceName, type Voice } from './voices';
+export { AudioEngine, type PlayOptions } from './engine';
+
+/**
+ * Where on the board something happened, as a stereo position. Kept narrow on
+ * purpose: a game heard on a phone speaker should feel placed, not ping-ponged,
+ * and anyone on headphones should never have to look up from the board because
+ * a sound came from somewhere they were not expecting.
+ */
+export const panForSquare = (square: number): number => ((square % 8) - 3.5) / 3.5 * 0.35;
 export { Haptics } from './haptics';
 
 export class Sound {
@@ -32,22 +41,31 @@ export class Sound {
     this.haptics.setEnabled(settings.haptics);
   }
 
-  play(name: VoiceName, options?: { semitone?: number; delayMs?: number; throttleMs?: number }): void {
+  play(name: VoiceName, options?: PlayOptions): void {
     this.audio.play(name, options);
   }
 
-  place(): void {
-    this.audio.play('place');
+  place(square?: number): void {
+    this.audio.play('place', square === undefined ? {} : { pan: panForSquare(square) });
     this.haptics.place();
   }
 
-  illegal(): void {
-    this.audio.play('illegal', { throttleMs: 120 });
+  illegal(square?: number): void {
+    this.audio.play('illegal', {
+      throttleMs: 120,
+      ...(square === undefined ? {} : { pan: panForSquare(square) }),
+    });
     this.haptics.illegal();
   }
 
-  flipWave(count: number, stepMs: number, distanceOf: (index: number) => number): void {
-    this.audio.playFlipWave(count, stepMs, distanceOf);
+  flipWave(
+    count: number,
+    stepMs: number,
+    distanceOf: (index: number) => number,
+    squareOf?: (index: number) => number,
+  ): void {
+    this.audio.playFlipWave(count, stepMs, distanceOf,
+      squareOf ? (i) => panForSquare(squareOf(i)) : undefined);
     this.haptics.flips(count);
   }
 }

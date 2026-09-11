@@ -12,7 +12,7 @@ import {
   apply, canUndo, games, legalMoves, outcome, play, positionAt, rules, score, undo,
 } from '../../engine';
 import { BLACK, WHITE, type Color, type Game, type ScoreMode, type Square, type Variant } from '../../engine/types';
-import type { Settings } from '../../data/types';
+import type { Level, Settings } from '../../data/types';
 
 export interface Opponent {
   kind: 'pass' | 'computer' | 'friend';
@@ -20,13 +20,13 @@ export interface Opponent {
   color: Color | null;
   /** How the opponent is named in the score strip and the status line. */
   label: string;
+  /** Which rung of the ladder this is, when the opponent is the computer. */
+  level?: Level;
   variant: Variant;
-  /** Undo and Hint are unavailable in a friend match, and say so on tap. */
+  /** Undo is unavailable in a friend match, and says so on tap. */
   allowUndo: boolean;
-  allowHint: boolean;
   unavailableReason?: string;
   think?(game: Game): Promise<Square>;
-  hint?(game: Game): Promise<{ square: Square; reason: string }>;
   dispose?(): void;
 }
 
@@ -37,7 +37,8 @@ export interface GameScreenHost {
   sound: Sound;
   settings: () => Settings;
   onExit(): void;
-  onFinished(game: Game, opponent: Opponent): void;
+  /** Returns a line worth adding to the game-over sheet, or null. */
+  onFinished(game: Game, opponent: Opponent): string | null;
   onProgress(game: Game, opponent: Opponent): void;
   /** A move the person here played, for a peer that needs telling. */
   onLocalMove(square: Square, game: Game): void;
@@ -58,7 +59,7 @@ export class GameScreen {
   private readonly counts: [HTMLElement, HTMLElement];
   private readonly status: HTMLElement;
   private readonly label: HTMLElement;
-  private readonly thumbs: Record<'undo' | 'hint' | 'moves' | 'more', HTMLButtonElement>;
+  private readonly thumbs: Record<'undo' | 'moves' | 'more', HTMLButtonElement>;
   private readonly chitHost: HTMLElement;
 
   private game: Game = games.newGame();
@@ -73,7 +74,7 @@ export class GameScreen {
   constructor(private readonly host: GameScreenHost) {
     this.board = new BoardView({
       onCommit: (square) => void this.commit(square),
-      onIllegal: (square) => { this.board.illegal(square); this.host.sound.illegal(); },
+      onIllegal: (square) => { this.board.illegal(square); this.host.sound.illegal(square); },
       flipsFor: (square) => this.flipsFor(square),
       describe: (square) => this.describe(square),
       onAnnounceScore: () => this.announceScore(),
@@ -100,7 +101,6 @@ export class GameScreen {
       el('button', { type: 'button', class: 'thumbbar__slot', 'data-thumb': name, text });
     this.thumbs = {
       undo: thumb('undo', 'Undo'),
-      hint: thumb('hint', 'Hint'),
       moves: thumb('moves', 'Moves'),
       more: thumb('more', 'More'),
     };
@@ -109,7 +109,6 @@ export class GameScreen {
       [chevron('left')]);
     on(back, 'click', () => this.host.onExit());
     on(this.thumbs.undo, 'click', () => void this.undoMove());
-    on(this.thumbs.hint, 'click', () => void this.askHint());
     on(this.thumbs.moves, 'click', () => this.openMoves());
     on(this.thumbs.more, 'click', () => this.openMore());
 
@@ -118,7 +117,7 @@ export class GameScreen {
       this.strip,
       el('div', { class: 'stage' }, [this.board.el, this.status, this.chitHost]),
       el('div', { class: 'thumbbar' },
-        [this.thumbs.undo, this.thumbs.hint, this.thumbs.moves, this.thumbs.more]),
+        [this.thumbs.undo, this.thumbs.moves, this.thumbs.more]),
     ]);
   }
 
@@ -210,7 +209,7 @@ export class GameScreen {
 
     // The disc lands, then the wave: the sound follows the animation's own
     // stagger, so a click arrives with each disc rather than all at once.
-    this.host.sound.place();
+    this.host.sound.place(square);
     const chebyshev = (i: number): number => {
       const target = result.flipped[i]!;
       return Math.max(
@@ -218,7 +217,8 @@ export class GameScreen {
         Math.abs(Math.floor(target / 8) - Math.floor(square / 8)),
       );
     };
-    this.host.sound.flipWave(result.flipped.length, ms('--t-stagger'), chebyshev);
+    this.host.sound.flipWave(result.flipped.length, ms('--t-stagger'), chebyshev,
+      (i) => result.flipped[i]!);
 
     await this.board.play(square, mover, result.flipped);
 
@@ -261,15 +261,16 @@ export class GameScreen {
     this.board.finish(result.kind === 'win' ? result.winner : null);
     this.host.sound.play('end');
     this.refresh();
-    this.host.onFinished(this.game, this.opponent);
+    const note = this.host.onFinished(this.game, this.opponent);
 
     const line = this.resultLine(settings.scoreMode);
-    this.announce(line);
+    this.announce(note ? `${line} ${note}` : line);
     // One orchestrated moment: the discs settle, the sweep runs, then the sheet
     // rises. The final board stays visible above it.
     setTimeout(() => {
       this.host.sheets.open({
         title: line,
+        ...(note ? { body: el('p', { class: 't-body', text: note }) } : {}),
         dismissible: true,
         actions: [
           primary('Play again', () => { this.host.sheets.close(); this.start(this.opponent); }),
@@ -368,7 +369,6 @@ export class GameScreen {
     // "cannot be activated" to a screen reader while a sighted person taps it
     // and gets an explanation — so the reason goes in the label instead.
     this.markUnavailable(this.thumbs.undo, 'Undo', this.undoReason());
-    this.markUnavailable(this.thumbs.hint, 'Hint', this.hintReason());
   }
 
   /** Null when the control is usable; otherwise why it is not. */
@@ -376,13 +376,6 @@ export class GameScreen {
     if (!this.opponent.allowUndo) return this.opponent.unavailableReason ?? 'Not available in this match.';
     if (!canUndo(this.game)) return 'Nothing to undo yet.';
     if (!this.undoBudgetLeft()) return 'No undos left this game.';
-    return null;
-  }
-
-  private hintReason(): string | null {
-    if (!this.opponent.allowHint) return this.opponent.unavailableReason ?? 'Not available in this match.';
-    if (!this.host.settings().hints) return 'Hints are off in Settings.';
-    if (!this.isLocalTurn()) return 'Wait for your turn.';
     return null;
   }
 
@@ -504,22 +497,6 @@ export class GameScreen {
     this.host.onProgress(this.game, this.opponent);
   }
 
-  private async askHint(): Promise<void> {
-    const reason = this.hintReason();
-    if (reason) { this.host.toast.show(reason); return; }
-    if (!this.opponent.hint) { this.host.toast.show('Not available in this match.'); return; }
-
-    this.thumbs.hint.setAttribute('aria-busy', 'true');
-    try {
-      const { square, reason } = await this.opponent.hint(this.game);
-      this.board.focusSquare(square);
-      this.host.toast.show(`${nameOf(square)}. ${reason}.`);
-      this.announce(`Hint: ${nameOf(square)}. ${reason}.`);
-    } finally {
-      this.thumbs.hint.removeAttribute('aria-busy');
-    }
-  }
-
   private openMoves(): void {
     const list = el('div', { class: 'moves' });
     if (this.game.history.length === 0) {
@@ -625,8 +602,5 @@ export function chevron(direction: 'left' | 'right'): SVGElement {
 }
 
 export function passAndPlay(variant: Variant): Opponent {
-  return {
-    kind: 'pass', color: null, label: 'Pass and play', variant,
-    allowUndo: true, allowHint: true,
-  };
+  return { kind: 'pass', color: null, label: 'Pass and play', variant, allowUndo: true };
 }

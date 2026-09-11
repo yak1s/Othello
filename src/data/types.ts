@@ -38,10 +38,12 @@ export interface Settings {
   readonly rotateBetweenTurns: boolean; // pass & play only
   readonly scoreMode: ScoreMode;
   // Assist
-  readonly hints: boolean;
   readonly undoAllowance: UndoAllowance;
   // Motion
   readonly motion: MotionPref;
+  // Progress. The computer's levels are earned one at a time: beating level N
+  // opens level N+1, and nothing else does.
+  readonly unlockedLevel: Level;
   // Sticky choices
   readonly lastLevel: Level;
   readonly lastVariant: Variant;

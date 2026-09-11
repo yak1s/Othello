@@ -34,6 +34,8 @@ const pairs = [
   ['body', 'primary button label 17/500', T['--ink'], T['--card']],
   ['body', 'primary button label, hover fill', T['--ink'], T['--bone']],
   ['body', 'primary button label, pressed fill', T['--ink'], T['--press']],
+  ['body', 'locked level row label 17/400', T['--ink'], T['--press']],
+  ['body', 'locked level note 13', T['--ink'], T['--press']],
   ['body', 'segmented option, unselected', T['--lacquer'], T['--card']],
   ['body', 'segmented option, selected', T['--card'], T['--ink']],
   ['large', 'destructive label 17/600 on paper', T['--shu'], T['--card']],
@@ -54,6 +56,11 @@ const pairs = [
   ['ui', 'focus ring on the frame', T['--brass-lit'], T['--lacquer']],
 
   // ── marks and rules ──
+  ['body', 'the PIN, 56/700 on paper', T['--ink'], T['--card']],
+  ['body', 'the waiting line, 13 on paper', T['--lacquer'], T['--card']],
+  ['body', 'the PIN field, 34/700 on bone', T['--ink'], T['--bone']],
+  ['ui', 'the PIN field placeholder on bone', T['--disabled'], T['--bone']],
+  ['ui', 'the rule under the PIN', T['--brass'], T['--card']],
   ['ui', 'primary button keyline on paper', T['--brass'], T['--card']],
   ['ui', 'turn rule on paper', T['--brass'], T['--card']],
   ['ui', 'divider on the page ground', T['--rule'], T['--ink']],
@@ -72,6 +79,7 @@ const pairs = [
   ['disabled', 'disabled control label and border', T['--disabled'], T['--ink']],
   ['ui', 'coordinates on the frame', T['--text-coord'], T['--lacquer']],
   ['exempt', 'paper hairline (--e1), decorative', T['--card-edge'], T['--card']],
+  ['exempt', 'locked row recess against paper, a tonal block', T['--press'], T['--card']],
   ...FELTS.map(([name, felt]) => ['exempt', `guide dot on ${name}, a printed mark`, blend(T['--ink'], felt, 0.34), felt]),
   ...FELTS.map(([name, felt], i) => ['exempt', `${name} weave, intentionally near-invisible`, FELT_ALTS[i][1], felt]),
 ];

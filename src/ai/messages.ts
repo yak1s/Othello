@@ -7,12 +7,10 @@ import type { Level } from '../data/types';
 
 export type Request =
   | { readonly type: 'think'; readonly id: number; readonly position: PositionState; readonly level: Level; readonly variant: Variant; readonly transcript: string; readonly seed: number }
-  | { readonly type: 'hint'; readonly id: number; readonly position: PositionState; readonly variant: Variant }
   | { readonly type: 'stop' };
 
 export type Response =
   | { readonly type: 'ready' }
   | { readonly type: 'move'; readonly id: number; readonly square: Square; readonly score: number; readonly depth: number; readonly nodes: number; readonly exact: boolean; readonly fromBook: boolean }
-  | { readonly type: 'hint'; readonly id: number; readonly square: Square; readonly reason: string }
   | { readonly type: 'aborted'; readonly id: number }
   | { readonly type: 'error'; readonly id: number; readonly message: string };

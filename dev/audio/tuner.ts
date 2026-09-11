@@ -13,6 +13,11 @@ const root = document.getElementById('tuner')!;
 function boundsFor(key: string, value: number): { min: number; max: number; step: number } {
   // Levels are negative decibels, so a 0-based range would pin them to the left.
   if (key === 'gainDb') return { min: -40, max: 0, step: 0.5 };
+  // −60 is the engine's own "no send at all", so the slider reaches dry.
+  if (key === 'sendDb') return { min: -60, max: 0, step: 0.5 };
+  if (key.endsWith('Mix')) return { min: 0, max: 1, step: 0.01 };
+  if (key === 'partialRatio') return { min: 1, max: 8, step: 0.01 };
+  if (key === 'q' || key.endsWith('Q')) return { min: 0.2, max: 20, step: 0.1 };
   if (key.endsWith('Hz')) return { min: 40, max: 6000, step: 10 };
   if (key.endsWith('Ms')) return { min: 1, max: 600, step: 1 };
   if (key === 'bandQ') return { min: 0.2, max: 20, step: 0.1 };
@@ -54,6 +59,7 @@ for (const [name, voice] of Object.entries(VOICES) as [VoiceName, typeof VOICES[
   };
 
   addRow('gainDb', voice.gainDb, (v) => { voice.gainDb = v; });
+  addRow('sendDb', voice.sendDb, (v) => { voice.sendDb = v; });
   for (const [key, value] of Object.entries(voice.params)) {
     addRow(key, value, (v) => { voice.params[key] = v; });
   }
@@ -74,7 +80,8 @@ on(copy, 'click', () => {
   const body = (Object.entries(VOICES) as [VoiceName, typeof VOICES[VoiceName]][])
     .map(([name, voice]) => {
       const params = Object.entries(voice.params).map(([k, v]) => `      ${k}: ${v},`).join('\n');
-      return `  ${name}: {\n    label: '${voice.label}',\n    gainDb: ${voice.gainDb},\n    params: {\n${params}\n    },\n  },`;
+      return `  ${name}: {\n    label: '${voice.label}',\n    gainDb: ${voice.gainDb},`
+        + `\n    sendDb: ${voice.sendDb},\n    params: {\n${params}\n    },\n  },`;
     }).join('\n');
   dump.value = `export const VOICES: Record<VoiceName, Voice> = {\n${body}\n};\n`;
   dump.select();

@@ -42,6 +42,13 @@ export interface SheetContent {
   title: string;
   body?: Node;
   actions?: HTMLElement[];
+  /**
+   * What should hold focus when the sheet opens. Without it the first button
+   * does, which is right for a sheet you read and wrong for one you type into —
+   * and having the screen fix that afterwards is a race the sheet wins about
+   * half the time (C29).
+   */
+  initialFocus?: HTMLElement;
   /** A sheet the user must answer (game over) has no handle and no backdrop tap. */
   dismissible?: boolean;
   onClose?: () => void;
@@ -87,7 +94,10 @@ export class SheetHost {
     requestAnimationFrame(() => {
       this.backdrop.classList.add('is-open');
       this.el.classList.add('is-open');
-      (this.el.querySelector<HTMLElement>('button, [tabindex]') ?? this.el).focus();
+      const wanted = content.initialFocus
+        ?? this.el.querySelector<HTMLElement>('button, input, [tabindex]')
+        ?? this.el;
+      wanted.focus();
     });
   }
 

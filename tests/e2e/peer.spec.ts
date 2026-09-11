@@ -1,13 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Two tabs, one real WebRTC data channel, and no signalling service at all: the
- * offer and answer are carried between the pages by the test, which is exactly
- * what the manual fallback asks a person to do. It exercises the real
- * transport, the real session and the real rules engine on both sides.
+ * The last-resort path: two tabs, one real WebRTC data channel, and no
+ * signalling service at all. The offer and answer are carried between the pages
+ * by the test, which is exactly what the manual fallback asks a person to do.
  *
- * The trystero path needs live relays, so it is not covered here; this covers
- * the part that is ours.
+ * The ordinary path — a four-digit PIN through a signalling relay — is
+ * `pin.spec.ts`. This one is what is left when a network blocks even that.
  */
 test('two peers play in sync over a hand-exchanged connection', async ({ browser }) => {
   const context = await browser.newContext();
@@ -18,18 +17,18 @@ test('two peers play in sync over a hand-exchanged connection', async ({ browser
 
   await host.getByRole('button', { name: 'Play a friend' }).click();
   await host.getByRole('button', { name: 'Start a game' }).click();
-  await host.getByRole('button', { name: 'Enter codes manually' }).click();
+  await host.getByRole('button', { name: 'Connect by hand instead' }).click();
 
   const hostOffer = host.locator('textarea[readonly]');
   await expect(hostOffer).not.toBeEmpty({ timeout: 30_000 });
   const offer = await hostOffer.inputValue();
   expect(offer.startsWith('K1')).toBe(true);
-  // Small enough to be a QR code someone can actually scan.
+  // Short enough to send in a message without it becoming a wall of text.
   expect(offer.length).toBeLessThan(1200);
 
   await guest.getByRole('button', { name: 'Play a friend' }).click();
-  await guest.getByRole('button', { name: 'Enter a code' }).click();
-  await guest.getByRole('button', { name: 'Enter codes manually' }).click();
+  await guest.getByRole('button', { name: 'Enter a PIN' }).click();
+  await guest.getByRole('button', { name: 'Connect by hand instead' }).click();
   await guest.locator('textarea:not([readonly])').fill(offer);
   await guest.getByRole('button', { name: 'Make my reply' }).click();
 

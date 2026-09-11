@@ -146,11 +146,6 @@ tappable without it. It stays because brief §5.1 draws it.
 
 ## What is not done
 
-- **The trystero path is not verified end to end.** This sandbox's proxy refuses
-  outbound WebSockets, so the nostr and torrent relays are unreachable here. The
-  session logic underneath is covered by 26 tests against a loopback transport,
-  and the WebRTC data path is covered end to end through the manual exchange —
-  but two devices finding each other over a public relay has not been run.
 - **The three deeper opening-book names** (Tiger, Rose, Buffalo) were written
   from memory. Every line is asserted legal and the names are internal, never
   shown, but they want checking against a reference.
@@ -174,3 +169,55 @@ tappable without it. It stays because brief §5.1 draws it.
   overlay that was texturing the legal-move dots and the last-move marker; and
   each cell offsets the tile by its position, so the weave runs continuously
   across the felt instead of restarting in every square.
+
+## Phase 12 — hints out, a ladder in, the sound rebuilt, and the PIN proved
+
+Four changes asked for after the first pass, and every one of them turned up a
+defect that had been sitting in the code unnoticed.
+
+**Hints are gone.** All the way down: the search entry point, the eval's
+`dominantTerm` and its table of reasons, the worker message pair, the client
+method, the thumb-bar slot, the Assist toggle and the `hints` setting. A feature
+half-removed still ships its bytes. The thumb bar is three slots now (C23).
+
+**The levels are earned.** Beating the level you are on opens the next one, and
+nothing else does — not a loss, not a draw, not beating a level you already
+passed. The rule is nine lines in `src/data/ladder.ts`, unit-tested on its own,
+and the shell only wires it up. A locked row is not dimmed (`--disabled` on
+paper measures Lc 38.7, which would have made the level's *name* unreadable);
+it is set into the paper and says *Locked*, and tapping it explains itself
+rather than swallowing the tap (C24). `tests/e2e/ladder.spec.ts` plays a real
+game to a real win and checks the unlock survives a reload.
+
+**The sound is rebuilt** around three things it did not have: an envelope that
+starts and ends at exactly zero, a synthesised room, and two layers per
+percussive voice (C25). Three defects fell out of measuring it (C26): a flip
+wave longer than six discs was **silent after the sixth** — the voice budget was
+charged to the moment a voice was scheduled rather than the moment it would
+sound — the un-normalised reverb pushed the game-over figure to 1.02 full scale,
+and the UI tap sat 37 dB under it. Clicks are now decided exactly, on the
+automation schedule, in `src/audio/envelope.test.ts`; the rendered properties —
+clipping, DC, balance, the room's width, the stereo placement — are measured
+through a real browser's `OfflineAudioContext` in `tests/e2e/audio.spec.ts`.
+`npm run audio:demo` renders the lot to a WAV so it can be judged by ear.
+
+**The PIN really works, and here is how that is known.** Trystero's `relayUrls`
+replaces its relay list outright, so `tests/e2e/relay.ts` stands up a ~70-line
+nostr relay and the app is pointed at it with `?relay=…`. Two separate browser
+contexts then meet on four digits, take one seat each, play six moves through a
+real WebRTC data channel, and are checked to agree disc for disc — not merely on
+the score, which a desync can match by accident. Driving it found the bug worth
+finding: the field's `maxlength` cut a *pasted* PIN to four characters **before**
+the spaces were stripped, so copying the `9 8 7 6` the host's own screen shows
+joined room 987 (C27). The connect flow also had no styles at all — `.qr` and
+`.code` went out with the QR encoder and nothing replaced them (C28).
+
+### Still not done
+
+- **A public relay is still unproven from here.** The sandbox proxy refuses
+  outbound WebSockets, so nostr's and torrent's default relays cannot be
+  reached. Everything between the PIN field and the data channel is now proved
+  against a real relay; what is untested is only whether *those particular
+  servers* are up, which is not something a test can settle anyway.
+- The three deeper opening-book names, Lighthouse, and the Pixel 4a frame
+  measurement are unchanged from the list above.

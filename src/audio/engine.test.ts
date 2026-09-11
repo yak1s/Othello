@@ -99,6 +99,22 @@ describe('the muted state', () => {
 });
 
 describe('the voice pool', () => {
+  it('spends its budget against when a voice will sound, not when it is scheduled', () => {
+    // A whole flip wave is scheduled inside one tick but spread over half a
+    // second. Charging every voice to the same instant used to exhaust the pool
+    // on the sixth disc and silence the rest of the wave.
+    let time = 0;
+    const started: string[] = [];
+    const engine = new AudioEngine({
+      ContextCtor: fakeContext(started), storage: memoryStorage(), now: () => time,
+    });
+    engine.unlock();
+    engine.playFlipWave(16, 45, (i) => i);
+    // Twelve discs sound, and each is built from a transient plus three
+    // partials — what matters is that none of them were dropped.
+    expect(started.length).toBeGreaterThanOrEqual(flipWavePlan(16).length);
+  });
+
   it('never sounds more than the ceiling at once', () => {
     let time = 0;
     const started: string[] = [];
@@ -160,14 +176,23 @@ describe('haptics', () => {
 
 /** Enough of the Web Audio graph to count what got started. */
 function fakeContext(started: string[]): new () => AudioContext {
+  const param = (): Record<string, unknown> => ({
+    value: 0,
+    setValueAtTime() {},
+    linearRampToValueAtTime() {},
+    exponentialRampToValueAtTime() {},
+    setTargetAtTime() {},
+  });
   const node = (): Record<string, unknown> => ({
     connect: (next: unknown) => next,
-    frequency: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} },
-    gain: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, setTargetAtTime() {} },
+    frequency: param(),
+    gain: param(),
+    delayTime: param(),
+    pan: param(),
     Q: { value: 0 },
     threshold: { value: 0 }, knee: { value: 0 }, ratio: { value: 0 },
     attack: { value: 0 }, release: { value: 0 },
-    type: '', buffer: null,
+    type: '', buffer: null, normalize: true,
     start: () => started.push('start'),
     stop: () => {},
   });
@@ -180,7 +205,12 @@ function fakeContext(started: string[]): new () => AudioContext {
     createDynamicsCompressor = node;
     createOscillator = node;
     createBufferSource = node;
-    createBuffer = () => ({ getChannelData: () => new Float32Array(8) });
+    createConvolver = node;
+    createDelay = node;
+    createStereoPanner = node;
+    createBuffer = (_channels: number, length: number) => ({
+      getChannelData: () => new Float32Array(length),
+    });
     resume = () => Promise.resolve();
   } as unknown as new () => AudioContext;
 }
