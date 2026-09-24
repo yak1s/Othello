@@ -60,6 +60,24 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.isReturnDefaultValues = true
+        unitTests.all { test ->
+            // Screenshot tests (Roborazzi) are slow; they run only in the screenshot CI job:
+            // ./gradlew :app:testDebugUnitTest -Ptidemark.screenshots --tests 'app.tidemark.screenshots.*'
+            if (project.hasProperty("tidemark.screenshots")) {
+                test.systemProperty("roborazzi.test.record", "true")
+                test.systemProperty("tidemark.screenshots.dir", rootProject.file("docs/screenshots").absolutePath)
+                test.maxHeapSize = "3g"
+            } else {
+                test.exclude("**/screenshots/**")
+            }
+        }
+    }
+    lint {
+        // Findings are reported by CI; a lint nit must never block building the app on your machine.
+        abortOnError = false
+        textReport = true
+        textOutput = file("build/reports/lint-results-debug.txt")
+        disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion", "OldTargetApi")
     }
     packaging {
         resources.excludes += setOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/LICENSE*", "META-INF/NOTICE*")
@@ -106,6 +124,9 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 

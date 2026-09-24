@@ -1,0 +1,53 @@
+name: Tidemark screenshots
+
+# Renders every screen and widget with Robolectric + Roborazzi at 390x844 and 300x650 (light and dark)
+# and commits the PNGs to tidemark/docs/screenshots. Request a run by changing
+# tidemark/docs/screenshots/REQUEST (any content) or the screenshot tests.
+on:
+  push:
+    branches: [claude/android-app-setup-guide-ngexeu]
+    paths: ['tidemark/docs/screenshots/REQUEST', 'tidemark/app/src/test/kotlin/app/tidemark/screenshots/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tidemark-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: tidemark
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: false
+      - name: Render screenshots
+        run: |
+          set -o pipefail
+          rm -rf docs/screenshots/*.png
+          ./gradlew :app:testDebugUnitTest -Ptidemark.screenshots --tests 'app.tidemark.screenshots.*' 2>&1 | tee shots.log
+      - name: Error summary
+        if: failure()
+        run: |
+          grep -E '^e: |error:|FAILED|What went wrong|Exception|at app\.tidemark' shots.log | awk '!seen[$0]++' | head -200
+          find . -path '*/build/test-results/*' -name '*.xml' -exec grep -l '<failure' {} \; | while read f; do echo "== $f"; grep -A 30 '<failure' "$f" | head -80; done
+      - name: Commit screenshots
+        if: success()
+        run: |
+          ls -la docs/screenshots
+          git config user.name "tidemark-screenshots"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/screenshots/*.png
+          git commit -m "Tidemark: update screenshots [skip ci]" || echo "No changes"
+          git push

@@ -7,7 +7,7 @@ import android.os.Build
  * Runs in both processes. The main process builds the [AppContainer]; the `:checker` process
  * (WebView + fetching) never touches the database, WorkManager or notifications.
  */
-class TidemarkApp : Application() {
+open class TidemarkApp : Application() {
     val isCheckerProcess: Boolean by lazy {
         val name = if (Build.VERSION.SDK_INT >= 28) getProcessName() else null
         name?.endsWith(":checker") == true
