@@ -64,9 +64,7 @@ interface WatchDao {
                w.sprintUntil, w.healthScore, w.sortOrder, w.urgent
         FROM watches w
         LEFT JOIN collections c ON c.id = w.collectionId
-        LEFT JOIN sources s ON s.id = (
-            SELECT id FROM sources WHERE watchId = w.id ORDER BY (id = w.winningSourceId) DESC, id LIMIT 1
-        )
+        LEFT JOIN sources s ON s.id = COALESCE(w.winningSourceId, (SELECT MIN(id) FROM sources WHERE watchId = w.id))
         WHERE w.archived = 0
         """
     )
