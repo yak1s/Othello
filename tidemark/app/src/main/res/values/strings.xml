@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared strings only. Each package keeps its own strings_<package>.xml to avoid edit conflicts. -->
+    <string name="app_name">Tidemark</string>
+    <string name="share_target_label">Watch with Tidemark</string>
+    <string name="tile_label">Tidemark alerts</string>
+    <string name="email_hints_label">Tidemark flight hints</string>
+    <string name="widget_board_label">Board</string>
+    <string name="widget_single_label">Single</string>
+    <string name="widget_stock_light_label">Stock light</string>
+    <string name="widget_fare_strip_label">Fare strip</string>
+</resources>

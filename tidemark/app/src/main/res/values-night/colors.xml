@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tm_ground">#1A2224</color>
+    <color name="tm_band">#202A2C</color>
+    <color name="tm_ink">#DDE5E5</color>
+    <color name="tm_ink_muted">#8AA0A2</color>
+    <color name="tm_rule">#334345</color>
+    <color name="tm_signal">#D19A2A</color>
+    <color name="tm_on_signal">#1A2224</color>
+    <color name="tm_adverse">#A85266</color>
+    <color name="tm_on_adverse">#1A2224</color>
+    <color name="tm_collection_0">#6FA39F</color>
+    <color name="tm_collection_1">#A3B46E</color>
+    <color name="tm_collection_2">#C79C7C</color>
+    <color name="tm_collection_3">#7F9BB8</color>
+    <color name="tm_collection_4">#A7ADB4</color>
+    <color name="tm_collection_5">#9C8676</color>
+</resources>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DESIGN.md palette, light. Six values per mode; Signal is for drops and restocks only. -->
+    <color name="tm_ground">#E9EDEE</color>
+    <color name="tm_band">#E1E7E8</color>
+    <color name="tm_ink">#16292B</color>
+    <color name="tm_ink_muted">#62787A</color>
+    <color name="tm_rule">#C6D0D1</color>
+    <color name="tm_signal">#E0A21B</color>
+    <color name="tm_on_signal">#16292B</color>
+    <color name="tm_adverse">#8C3A4A</color>
+    <color name="tm_on_adverse">#E9EDEE</color>
+    <!-- Collection identity strips (DESIGN.md, "Collection strip hues"). -->
+    <color name="tm_collection_0">#3E6B68</color>
+    <color name="tm_collection_1">#7A8B4A</color>
+    <color name="tm_collection_2">#A0785A</color>
+    <color name="tm_collection_3">#4F6A86</color>
+    <color name="tm_collection_4">#8A8F96</color>
+    <color name="tm_collection_5">#6E5A4B</color>
+</resources>
