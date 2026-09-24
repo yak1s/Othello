@@ -10,6 +10,9 @@ import java.time.LocalDate
  */
 object GoogleFlightsUrl {
     fun build(query: FlightQuery, departDate: String = query.departDate): String = TODO("flights package")
+
+    /** Saved fields from a shared Google Flights link (q= text URLs; best effort otherwise), or null to open the form. */
+    fun parse(url: String): FlightQuery? = TODO("flights package")
 }
 
 /** The dates a flexible-window watch checks: departDate ± flexDays, never in the past. */

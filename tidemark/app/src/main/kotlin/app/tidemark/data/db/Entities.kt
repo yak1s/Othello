@@ -66,9 +66,12 @@ data class WatchEntity(
     val arm: ArmState = ArmState(),
     val lastAlertAt: Long? = null,
     val lastAlertKey: String? = null,
-    /** A drop/restock/new-items alert the user hasn't opened the app since. Drives the accent. */
+    /**
+     * A drop/restock/new-items alert since the user last opened the app. For widgets and the shade board only;
+     * the in-app list's accent comes from unacknowledged alerts (WatchListRow.unacknowledgedMove).
+     */
     val unseenMove: Boolean = false,
-    /** Epoch millis when the row should run its one-time "count to new value + flash" motion; cleared after. */
+    /** Epoch millis when the row should run its one-time "count + flash" motion; set only for accent kinds; cleared after. */
     val flashAt: Long? = null,
     /** 0..100, from recent check outcomes. */
     val healthScore: Int = 100,
@@ -79,6 +82,8 @@ data class WatchEntity(
     val statusNote: String? = null,
     val selfTest: SelfTestState = SelfTestState.NONE,
     val imageUrl: String? = null,
+    /** Small thumbnail downloaded by the checker (filesDir/thumbs/…), shown in the add sheet and detail. */
+    val imagePath: String? = null,
     val sortOrder: Int = 0,
     /** Stopped, history kept. Hidden from the list and never checked. */
     val archived: Boolean = false,
@@ -120,6 +125,21 @@ data class SourceEntity(
     val robotsOverride: Boolean = false,
     val typicalTextLength: Int? = null,
     val lastSnapshotPath: String? = null,
+    /** Snapshot of the last good read, kept for re-picking a broken watch with the old page side by side. */
+    val lastGoodSnapshotPath: String? = null,
+    /** Consecutive sanity rejections and the last rejected reading (three identical ones ask the user). */
+    val rejectStreak: Int = 0,
+    val lastRejected: Reading? = null,
+    val lastRejectReason: String? = null,
+    /** Consecutive NothingFound / recipe aborts / 404s ("broken after two"). */
+    val failureStreak: Int = 0,
+    /**
+     * Hotels and rentals: the URL with {checkin}/{checkout} placeholders (DateExpr values in [urlDates]),
+     * rebuilt on every check like flights, so the dates roll forward. Null = use [url] as is.
+     */
+    val urlTemplate: String? = null,
+    /** "name=expr" pairs for [urlTemplate] placeholders, e.g. "checkin=today + 30", "checkout=today + 33". */
+    val urlDates: List<String> = emptyList(),
 )
 
 /** Confirmed history. Watch-level rows (sourceId null) feed the chart and baselines. */
@@ -168,6 +188,10 @@ data class CheckLogEntity(
     val currency: String? = null,
     val snapshotPath: String? = null,
     val alertId: Long? = null,
+    /** What was fetched (flights and API taps fetch a different URL from the page). */
+    val url: String? = null,
+    val readVia: ReadVia? = null,
+    val evidence: String? = null,
 )
 
 @Entity(
@@ -195,6 +219,8 @@ data class AlertEntity(
     val confirmLogId: Long? = null,
     val firstReading: Reading? = null,
     val confirmReading: Reading? = null,
+    /** NEW_ITEMS: only the new ones (the readings hold every item). */
+    val newItemIds: List<String> = emptyList(),
     val acknowledged: Boolean = false,
     /** False while held by quiet hours; delivered in the digest afterwards. */
     val delivered: Boolean = true,
@@ -278,6 +304,11 @@ data class SiteEntity(
     /** Confirmed changes by local hour (24 buckets). */
     val changeHistogram: List<Int> = List(24) { 0 },
     val loginRecipeId: Long? = null,
+    /**
+     * After the user cleared a block in the in-app browser, the site's sources use the browser (LIGHT at least)
+     * until this time: clearance cookies are tied to the browser and don't carry over to plain downloads.
+     */
+    val browserOnlyUntil: Long? = null,
 )
 
 @Entity(tableName = "widgets")

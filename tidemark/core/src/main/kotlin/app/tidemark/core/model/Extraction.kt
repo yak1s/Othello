@@ -61,6 +61,13 @@ data class ExtractionSpec(
     val currency: String? = null,
     /** When false, skip structured data / meta (the user picked a specific element on purpose). */
     val allowStructuredData: Boolean = true,
+    /**
+     * Hotels and rentals: the unit the price is quoted per ("night"). The currency heuristic then prefers
+     * amounts labelled per night instead of discarding per-unit prices.
+     */
+    val perUnit: String? = null,
+    /** Hotels: nights in the stay, to derive a nightly rate when the page shows only a total. */
+    val nights: Int? = null,
 )
 
 /**
@@ -93,4 +100,10 @@ data class PageSignals(
     /** True when the page says the product is unavailable / discontinued / not found. */
     val unavailable: Boolean = false,
     val bytes: Long = 0,
+    /**
+     * The page looks logged out when a session was expected (login form where the product should be, a
+     * redirect to a sign-in URL, or the recipe's `loggedOutWhen` matched). Such a reading is never used:
+     * a logged-out member-price page shows the higher public price, and trusting it would fake a "drop".
+     */
+    val loggedOut: Boolean = false,
 )

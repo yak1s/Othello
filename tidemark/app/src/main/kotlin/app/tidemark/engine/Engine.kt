@@ -20,7 +20,11 @@ class Engine(private val context: Context, private val container: AppContainer) 
     /** Swipe right / "Check now": runs outside any screen's lifetime. */
     fun checkNow(watchId: Long): Unit = TODO("engine package")
 
-    /** Run one check and wait for the decision (used by self-test, sprint and tests). */
+    /**
+     * Run one check and wait for the decision (used by self-test, sprint and tests). Holds a per-watch Mutex,
+     * so checkNow, the tick, a sprint, the self-test and email hints never run the same watch at once; the
+     * alert dedupe re-reads lastAlertAt/lastAlertKey inside the persisting transaction.
+     */
     suspend fun runCheck(watchId: Long, reason: CheckReason): WatchDecision? = TODO("engine package")
 
     /** Recompute the next wake-up after watches changed (added, edited, snoozed, resumed). */
@@ -33,6 +37,10 @@ class Engine(private val context: Context, private val container: AppContainer) 
     /** After saving: three checks over 90 seconds, then a solid status or "couldn't read this reliably". */
     fun startSelfTest(watchId: Long): Unit = TODO("engine package")
 
-    /** The user cleared a block in the browser: lower the site's frequency one step and check again. */
+    /**
+     * The user cleared a block in the browser: lower the site's frequency one step, keep that host's sources on
+     * the browser (LIGHT at least) for 14 days (SiteEntity.browserOnlyUntil: clearance cookies don't carry over
+     * to plain downloads), re-arm the watch and check again.
+     */
     suspend fun resumeAfterBlock(sourceId: Long): Unit = TODO("engine package")
 }

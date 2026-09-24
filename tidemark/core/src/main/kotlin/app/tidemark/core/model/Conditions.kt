@@ -102,24 +102,30 @@ data class Rule(
     val clauses: List<Condition> get() = listOfNotNull(first, second)
 }
 
-/** Per-clause re-arm state for crossing conditions (Below, Above, NumberBelow, InStock). Index = clause index. */
+/**
+ * Per-clause re-arm state for crossing conditions (Below, Above, NumberBelow, InStock). Index = clause index.
+ *
+ * [seeded] is false for a new watch and after every rule or threshold change. The first confirmed reading
+ * evaluated with an unseeded state never fires a crossing clause: it seeds `armed[i] = !satisfied[i]`, so a
+ * price that is already below $X when the rule is set doesn't alert until it goes back above and crosses again.
+ */
 @Serializable
-data class ArmState(val armed: List<Boolean> = listOf(true, true)) {
+data class ArmState(val armed: List<Boolean> = listOf(true, true), val seeded: Boolean = false) {
     fun isArmed(clause: Int): Boolean = armed.getOrElse(clause) { true }
     fun with(clause: Int, value: Boolean): ArmState =
-        ArmState(List(maxOf(2, armed.size)) { i -> if (i == clause) value else isArmed(i) })
+        ArmState(List(maxOf(2, armed.size)) { i -> if (i == clause) value else isArmed(i) }, seeded)
 }
 
 /** What kind of event an alert reports. Decides channel, copy and whether the accent color is allowed. */
 @Serializable
 enum class AlertKind {
-    /** Price or number fell (drops, below, drops by, all-time low, number below). Accent. */
+    /** A price fell (drops, below, drops by, all-time low). Accent. Generic numbers (NumberBelow/Above) are CHANGE. */
     DROP,
     /** Came back in stock. Accent. */
     RESTOCK,
     /** New listings appeared. Accent. */
     NEW_ITEMS,
-    /** Element changed / keyword appeared or disappeared / number rose above. No accent. */
+    /** Element changed, keyword appeared/disappeared, a generic number crossed a threshold. No accent. */
     CHANGE,
     /** Layout changed and the value was re-found; user should verify. Silent. */
     LAYOUT_HEALED,

@@ -38,7 +38,7 @@ enum class SourceKind {
 
 /** Why a check is running. Decides politeness exceptions and logging. */
 @Serializable
-enum class CheckReason { SCHEDULED, MANUAL, SPRINT, SELF_TEST, CONFIRM, EMAIL_HINT, RESUME }
+enum class CheckReason { SCHEDULED, MANUAL, SPRINT, SELF_TEST, CONFIRM, EMAIL_HINT, RESUME, REVERIFY }
 
 /** Per-source ladder state, persisted on the source row. */
 @Serializable
@@ -52,7 +52,22 @@ data class LadderState(
     val consecutiveSuccesses: Int = 0,
     /** Epoch millis of the last "try one step down" probe. */
     val lastStepDownProbeAt: Long = 0,
+    /**
+     * Rungs this source never uses even inside [floor]..[ceiling]. A recipe source promoted to an API tap
+     * uses {API, FULL}: PLAIN and LIGHT are skipped (they can't perform the recipe's steps).
+     */
+    val skip: Set<FetchMethod> = emptySet(),
 )
+
+/**
+ * SNOOZED is never stored: a watch is snoozed while `snoozedUntil > now` or `snoozeUntilChange` is set.
+ * Everything that shows or schedules a watch uses this.
+ */
+fun effectiveStatus(stored: WatchStatus, snoozedUntil: Long?, snoozeUntilChange: Boolean, now: Long): WatchStatus = when {
+    stored == WatchStatus.PAUSED || stored == WatchStatus.BROKEN || stored == WatchStatus.NEEDS_ATTENTION -> stored
+    snoozeUntilChange || (snoozedUntil != null && snoozedUntil > now) -> WatchStatus.SNOOZED
+    else -> WatchStatus.ARMED
+}
 
 /** Self-healing progress for a source whose chosen element disappeared. */
 @Serializable

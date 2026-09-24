@@ -78,15 +78,21 @@ PipelineResult ──► Room (readings, sources, check_log, alerts, watch row)
 
 - The shared contract files are frozen: `core/model/*`, the public signatures in every
   `core/**` stub, `data/db/Entities.kt`, `data/db/Daos.kt`, `data/db/Converters.kt`,
-  `data/db/TidemarkDatabase.kt`, `ipc/Protocol.kt`, `browser/BrowserContracts.kt`,
-  `checker/RecipeRunner.kt` (signature), `AppContainer.kt`, `TidemarkApp.kt`, `IntentKeys.kt`,
-  `AndroidManifest.xml`, `res/values/colors.xml`, `res/values/strings.xml`.
+  `data/db/TidemarkDatabase.kt`, `ipc/Protocol.kt`, `browser/BrowserContracts.kt`, and the
+  signatures in `checker/RecipeRunner.kt`, `checker/CheckerRuntime.kt`, `ipc/ResultMapping.kt`,
+  `widget/BoardRows.kt`, `ui/nav/Navigator.kt`, `ui/components/Models.kt`; plus `AppContainer.kt`,
+  `TidemarkApp.kt`, `IntentKeys.kt`, `ui/Vm.kt`, `AndroidManifest.xml`, `res/values/colors.xml`,
+  `res/values-night/colors.xml`, `res/values/strings.xml`, `res/values/dimens_rail.xml`,
+  `res/xml/data_extraction_rules.xml`.
   Adding a *new* public function or class next to them is fine; changing or removing one is not.
 - Each package keeps its extra SQL in its own DAO (`data/DataExtraDao`, `engine/EngineDao`,
   `notify/NotifyDao`, `widget/WidgetQueriesDao`, `ui/ScreensDao`, `ui/AppUiDao`) and its strings in
   its own `res/values/strings_<package>.xml`.
-- The main process never touches `WebView`. The checker process never touches `AppContainer`,
-  Room, WorkManager or notifications.
+- The main process never touches `WebView` (it calls `WebView.disableWebView()` at start, so any use
+  throws). The checker process never touches `AppContainer`, Room, WorkManager or notifications; its
+  shared state (OkHttp, cookie bridge, user agent, per-host gate, adapters, WebView settings) lives in
+  `CheckerRuntime`.
+- Cross-package reactions go through `WatchRepository.changes` (see ENGINE.md "Who reacts to what").
 - Everything user-visible follows `DESIGN.md`; everything behavioural follows `ENGINE.md`.
 
 ## Verifying

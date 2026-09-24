@@ -23,6 +23,8 @@ data class WatchListRow(
     val valueText: String?,
     val previousValue: Double?,
     val unseenMove: Boolean,
+    /** An unacknowledged DROP/RESTOCK/NEW_ITEMS alert exists: the list's Signal plate. */
+    val unacknowledgedMove: Boolean,
     val flashAt: Long?,
     val collectionId: Long?,
     val collectionColorIndex: Int?,
@@ -32,10 +34,63 @@ data class WatchListRow(
     val nextCheckAt: Long?,
     val lastChangedAt: Long?,
     val snoozedUntil: Long?,
+    val snoozeUntilChange: Boolean,
     val sprintUntil: Long?,
     val healthScore: Int,
     val sortOrder: Int,
     val urgent: Boolean,
+    val statusNote: String?,
+    val effectiveProfile: app.tidemark.core.model.FrequencyProfile?,
+    val profile: app.tidemark.core.model.FrequencyProfile,
+)
+
+/** The columns a finished check writes on a watch row (partial update: user edits made meanwhile survive). */
+data class WatchCheckColumns(
+    val id: Long,
+    val lastCheckedAt: Long?,
+    val nextCheckAt: Long?,
+    val lastChangedAt: Long?,
+    val value: Double?,
+    val currency: String?,
+    val inStock: Boolean?,
+    val valueText: String?,
+    val previousValue: Double?,
+    val lastReading: app.tidemark.core.model.Reading?,
+    val winningSourceId: Long?,
+    val arm: app.tidemark.core.model.ArmState,
+    val lastAlertAt: Long?,
+    val lastAlertKey: String?,
+    val unseenMove: Boolean,
+    val flashAt: Long?,
+    val healthScore: Int,
+    val effectiveProfile: app.tidemark.core.model.FrequencyProfile?,
+    val adaptiveReason: String?,
+    val statusNote: String?,
+    val status: WatchStatus,
+    val snoozeUntilChange: Boolean,
+)
+
+/** The columns a finished check writes on a source row. The spec is only changed through [SourceDao.adoptSpec]. */
+data class SourceCheckColumns(
+    val id: Long,
+    val ladder: app.tidemark.core.model.LadderState,
+    val health: app.tidemark.core.pipeline.SourceHealth,
+    val heal: app.tidemark.core.model.HealState?,
+    val etag: String?,
+    val lastModified: String?,
+    val lastReading: app.tidemark.core.model.Reading?,
+    val lastCheckedAt: Long?,
+    val lastOkAt: Long?,
+    val lastMethod: app.tidemark.core.model.FetchMethod?,
+    val blockedSignal: String?,
+    val typicalTextLength: Int?,
+    val lastSnapshotPath: String?,
+    val lastGoodSnapshotPath: String?,
+    val rejectStreak: Int,
+    val lastRejected: app.tidemark.core.model.Reading?,
+    val lastRejectReason: String?,
+    val failureStreak: Int,
+    val robotsDisallowed: Boolean,
 )
 
 /** One point for list sparklines. */
@@ -59,9 +114,13 @@ interface WatchDao {
     @Query(
         """
         SELECT w.id, w.name, w.kind, w.status, w.value, w.currency, w.inStock, w.valueText, w.previousValue,
-               w.unseenMove, w.flashAt, w.collectionId, c.colorIndex AS collectionColorIndex, c.name AS collectionName,
+               w.unseenMove,
+               EXISTS(SELECT 1 FROM alerts a WHERE a.watchId = w.id AND a.acknowledged = 0
+                      AND a.kind IN ('DROP','RESTOCK','NEW_ITEMS')) AS unacknowledgedMove,
+               w.flashAt, w.collectionId, c.colorIndex AS collectionColorIndex, c.name AS collectionName,
                s.storeName AS storeName, w.lastCheckedAt, w.nextCheckAt, w.lastChangedAt, w.snoozedUntil,
-               w.sprintUntil, w.healthScore, w.sortOrder, w.urgent
+               w.snoozeUntilChange, w.sprintUntil, w.healthScore, w.sortOrder, w.urgent, w.statusNote,
+               w.effectiveProfile, w.profile
         FROM watches w
         LEFT JOIN collections c ON c.id = w.collectionId
         LEFT JOIN sources s ON s.id = COALESCE(w.winningSourceId, (SELECT MIN(id) FROM sources WHERE watchId = w.id))
@@ -70,7 +129,48 @@ interface WatchDao {
     )
     fun observeListRows(): Flow<List<WatchListRow>>
 
-    /** Watches due for a scheduled check at or before [until]: armed, not archived, not snoozed past [now]. */
+    @Update(entity = WatchEntity::class) suspend fun applyCheck(columns: WatchCheckColumns)
+
+    /**
+     * The scheduler's query: watches due at or before [until] that the tick should run — not archived, not
+     * paused, not waiting on the user (NEEDS_ATTENTION: "don't fight it"), not snoozed past [now], not in a Sprint.
+     */
+    @Query(
+        """
+        SELECT * FROM watches
+        WHERE archived = 0 AND status NOT IN ('PAUSED','NEEDS_ATTENTION')
+          AND (snoozedUntil IS NULL OR snoozedUntil <= :now)
+          AND (sprintUntil IS NULL OR sprintUntil <= :now)
+          AND (nextCheckAt IS NULL OR nextCheckAt <= :until)
+        ORDER BY nextCheckAt
+        """
+    )
+    suspend fun dueForTick(now: Long, until: Long): List<WatchEntity>
+
+    /**
+     * When the tick should next wake: the earliest max(nextCheckAt, snoozedUntil) over the watches [dueForTick]
+     * can return (a null nextCheckAt counts as now). Never earlier than a snooze, so a snoozed watch can't
+     * cause a busy loop.
+     */
+    @Query(
+        """
+        SELECT MIN(MAX(COALESCE(nextCheckAt, :now), COALESCE(snoozedUntil, 0))) FROM watches
+        WHERE archived = 0 AND status NOT IN ('PAUSED','NEEDS_ATTENTION')
+          AND (sprintUntil IS NULL OR sprintUntil <= :now)
+        """
+    )
+    suspend fun earliestWake(now: Long): Long?
+
+    /** The top pill's "next check in 4m" ticker (same rule as [earliestWake]). */
+    @Query(
+        """
+        SELECT MIN(MAX(COALESCE(nextCheckAt, :now), COALESCE(snoozedUntil, 0))) FROM watches
+        WHERE archived = 0 AND status NOT IN ('PAUSED','NEEDS_ATTENTION')
+        """
+    )
+    fun observeEarliestWake(now: Long): Flow<Long?>
+
+    /** Legacy: do not use for scheduling (ignores snoozes and blocked watches). Use [dueForTick]. */
     @Query(
         """
         SELECT * FROM watches
@@ -82,9 +182,11 @@ interface WatchDao {
     )
     suspend fun due(now: Long, until: Long): List<WatchEntity>
 
+    /** Legacy: do not use for scheduling. Use [earliestWake]. */
     @Query("SELECT MIN(nextCheckAt) FROM watches WHERE archived = 0 AND status != 'PAUSED'")
     suspend fun earliestNextCheck(): Long?
 
+    /** Legacy: use [observeEarliestWake]. */
     @Query("SELECT MIN(nextCheckAt) FROM watches WHERE archived = 0 AND status != 'PAUSED'")
     fun observeEarliestNextCheck(): Flow<Long?>
 
@@ -116,6 +218,18 @@ interface SourceDao {
     @Query("SELECT * FROM sources WHERE host = :host") suspend fun forHost(host: String): List<SourceEntity>
     @Query("SELECT * FROM sources WHERE recipeId = :recipeId") suspend fun forRecipe(recipeId: Long): List<SourceEntity>
     @Query("SELECT * FROM sources") suspend fun all(): List<SourceEntity>
+
+    @Update(entity = SourceEntity::class) suspend fun applyCheck(columns: SourceCheckColumns)
+
+    /** Self-healing adoption, compare-and-set: only replaces the spec if nobody (the picker) changed it meanwhile. Returns rows changed. */
+    @Query("UPDATE sources SET spec = :newSpec WHERE id = :id AND spec = :oldSpec")
+    suspend fun adoptSpec(id: Long, oldSpec: app.tidemark.core.model.ExtractionSpec, newSpec: app.tidemark.core.model.ExtractionSpec): Int
+
+    @Query("SELECT lastGoodSnapshotPath FROM sources WHERE lastGoodSnapshotPath IS NOT NULL")
+    suspend fun goodSnapshots(): List<String>
+
+    @Query("SELECT lastSnapshotPath FROM sources WHERE lastSnapshotPath IS NOT NULL")
+    suspend fun latestSnapshots(): List<String>
 }
 
 @Dao
@@ -166,6 +280,8 @@ interface CheckLogDao {
     /** Keep the log bounded: drop entries older than [before] that aren't linked to an alert. */
     @Query("DELETE FROM check_log WHERE at < :before AND alertId IS NULL") suspend fun prune(before: Long): Int
     @Query("SELECT snapshotPath FROM check_log WHERE snapshotPath IS NOT NULL") suspend fun referencedSnapshots(): List<String>
+    /** Snapshots that must survive pruning: the ones behind an alert. Keep set = these + sources' good/latest snapshots. */
+    @Query("SELECT snapshotPath FROM check_log WHERE alertId IS NOT NULL AND snapshotPath IS NOT NULL") suspend fun alertSnapshots(): List<String>
 }
 
 @Dao

@@ -31,10 +31,19 @@ data class SiteAdapter(
     val minGapSeconds: Int? = null,
 )
 
-/** A JSON endpoint that returns the value directly. Prices may be in minor units ([priceDivisor] = 100). */
+/**
+ * A JSON endpoint that returns the value directly. Prices may be in minor units ([priceDivisor] = 100).
+ * Cookies always come from the checker's shared cookie jar and are never stored here. [headers] never hold
+ * Cookie, Authorization, CSRF or token headers; a header value may be a `{secret:<id>}` placeholder that the
+ * checker resolves from CheckRequest.secrets.
+ */
 @Serializable
 data class ApiTap(
     val urlTemplate: String,
+    /** "GET", or "POST" for a GraphQL query (never a mutation). */
+    val method: String = "GET",
+    val body: String? = null,
+    val contentType: String? = null,
     val priceJsonPath: String? = null,
     val stockJsonPath: String? = null,
     val currencyJsonPath: String? = null,

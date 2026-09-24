@@ -1,6 +1,7 @@
 package app.tidemark.ipc
 
 import app.tidemark.core.model.ApiTap
+import app.tidemark.core.model.CheckReason
 import app.tidemark.core.model.ElementFingerprint
 import app.tidemark.core.model.ExtractionSpec
 import app.tidemark.core.model.FareApi
@@ -20,20 +21,40 @@ import kotlinx.serialization.Serializable
  * in-app browser's cookie jar). Messages travel over a [android.os.Messenger]; each carries one
  * JSON string under [KEY_JSON]. Anything large (HTML snapshots, screenshots) is written to
  * `filesDir/snapshots` by the checker and referenced by path.
+ *
+ * Size rule: a JSON payload over [SPILL_BYTES] is written to `cacheDir/ipc/<requestId>.json` and sent as
+ * [KEY_JSON_PATH] instead (the receiver reads and deletes it). Results cap candidates at 20, heal candidates
+ * at 5, variants at 50, JSON candidates at 50, and every Reading is `bounded()`.
  */
 object Ipc {
     const val MSG_CHECK = 1
     const val MSG_PREVIEW = 2
     const val MSG_CANCEL = 3
     const val MSG_PING = 4
+    /** Hand decrypted secrets to the checker process for a browser REPLAY/REPAIR: [PutSecretsRequest]; kept in memory for 5 minutes. */
+    const val MSG_PUT_SECRETS = 5
+    /** Sign out and reset one site (cookies + web storage), or all sites: [ClearSiteDataRequest]. */
+    const val MSG_CLEAR_SITE_DATA = 6
+    /** Site adapter files changed in filesDir/adapters: reload them. */
+    const val MSG_RELOAD_ADAPTERS = 7
     const val MSG_CHECK_RESULT = 101
     const val MSG_PREVIEW_EVENT = 102
     const val MSG_PONG = 104
     const val KEY_JSON = "json"
+    const val KEY_JSON_PATH = "jsonPath"
     const val KEY_REQUEST_ID = "requestId"
+    const val SPILL_BYTES = 200_000
 }
 
-/** Why the main process wants this fetch; only used for logs and politeness exceptions. */
+@Serializable
+data class PutSecretsRequest(val token: String, val secrets: Map<String, String>) {
+    override fun toString(): String = "PutSecretsRequest(token=$token, ids=${secrets.keys})"
+}
+
+@Serializable
+data class ClearSiteDataRequest(val requestId: String, val host: String? = null)
+
+/** Mirrors core FetchPurpose 1:1 (SELF_TEST and SPRINT are reasons: see [CheckRequest.reason]). */
 @Serializable
 enum class FetchPurposeDto { FIRST, CONFIRM, STEP_DOWN_PROBE, SELF_TEST, SPRINT }
 
@@ -48,6 +69,7 @@ data class CheckRequest(
     val method: FetchMethod,
     val spec: ExtractionSpec,
     val purpose: FetchPurposeDto,
+    val reason: CheckReason = CheckReason.SCHEDULED,
     val adapterName: String? = null,
     val apiTap: ApiTap? = null,
     val apiTapUrl: String? = null,
@@ -57,13 +79,18 @@ data class CheckRequest(
     val recipe: Recipe? = null,
     /** Session recipe to run first if the checker detects it's logged out. */
     val loginRecipe: Recipe? = null,
+    /** Consecutive failed logins so far; the checker never runs a login recipe at 2 or more. */
+    val loginFailures: Int = 0,
+    /** Conditional-request validators. Never sent for CONFIRM or STEP_DOWN_PROBE (a 304 there is a failed confirmation). */
     val etag: String? = null,
     val lastModified: String? = null,
     /** The user chose to check a path robots.txt disallows. */
     val ignoreRobots: Boolean = false,
+    /** Save a snapshot: FIRST after an edit, CONFIRM, failures, ELEMENT_MISSING; otherwise false (storage). */
     val saveSnapshot: Boolean = true,
+    /** Covers the fetch itself; time queued behind the per-host gate doesn't count (the client waits timeoutMs + queue). */
     val timeoutMs: Long = 45_000,
-    /** Minimum gap to keep after the previous request to the same host (the checker enforces it too). */
+    /** Minimum gap after the previous request to the same host; the checker honours this value (1-3 s for CONFIRM). */
     val minGapMillis: Long = 8_000,
     /**
      * Decrypted secret values for recipe steps and fare API keys, keyed by secret id. Only ever in
@@ -93,6 +120,8 @@ enum class CheckOutcome {
     RECIPE_ABORTED,
     /** A recipe run landed on a cart/checkout/payment URL and stopped. */
     TRANSACTIONAL_URL,
+    /** A recipe step resolved to a buy/book/submit element the user never overrode; stopped before pressing it. */
+    UNSAFE_TARGET,
     /** Logged out and there is no working login recipe (or it failed twice / needs 2FA). */
     LOGIN_REQUIRED,
     HTTP_ERROR,
@@ -114,6 +143,16 @@ data class CandidateDto(
 
 @Serializable
 data class HealCandidateDto(val fingerprint: ElementFingerprint, val valueText: String, val score: Double)
+
+@Serializable
+data class VariantDto(val name: String, val inStock: Boolean? = null, val price: Double? = null, val currency: String? = null)
+
+/** A number in a JSON response the user can tap to track (API endpoints). */
+@Serializable
+data class JsonCandidateDto(val path: String, val value: String, val context: String)
+
+@Serializable
+data class FareDateDto(val date: String, val amount: Double? = null, val currency: String? = null)
 
 @Serializable
 data class CheckResult(
@@ -140,12 +179,22 @@ data class CheckResult(
     /** PNG of the page when a recipe step failed. */
     val screenshotPath: String? = null,
     val failedStepIndex: Int? = null,
+    /** Steps that only matched through a fallback locator (the recipe is getting fragile). */
+    val recipeDegradedSteps: List<Int> = emptyList(),
+    val loginAttempted: Boolean = false,
+    val loginSucceeded: Boolean? = null,
+    val needsTwoFactor: Boolean = false,
+    val variants: List<VariantDto> = emptyList(),
+    /** FLIGHT with a flexible window: every date checked (the reading is the cheapest). */
+    val fareDates: List<FareDateDto> = emptyList(),
 )
 
 @Serializable
 data class PreviewRequest(
     val requestId: String,
     val url: String,
+    /** A flight built in the add sheet's form: preview that search instead of [url]. */
+    val flight: FlightQuery? = null,
     /** Allow stepping up to the light/full browser when the plain download finds nothing. */
     val allowBrowser: Boolean = true,
 )
@@ -177,4 +226,11 @@ data class PreviewEvent(
     val botWall: String? = null,
     val robotsDisallowed: Boolean = false,
     val message: String? = null,
+    /** Parsed from a shared Google Flights link (null: open the flight form). */
+    val flight: FlightQuery? = null,
+    val variants: List<VariantDto> = emptyList(),
+    val jsonCandidates: List<JsonCandidateDto> = emptyList(),
+    /** Thumbnail downloaded by the checker (≤ 64 KB) under filesDir/thumbs. */
+    val imagePath: String? = null,
+    val snapshotPath: String? = null,
 )

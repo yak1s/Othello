@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The numeric rail (DESIGN.md), shared by Compose (TmDimens) and RemoteViews (widgets, shade board). -->
+    <dimen name="tm_rail_gutter">16dp</dimen>
+    <dimen name="tm_rail_delta">60dp</dimen>
+    <dimen name="tm_rail_gap">6dp</dimen>
+    <dimen name="tm_rail_line">1dp</dimen>
+    <dimen name="tm_strip">3dp</dimen>
+    <dimen name="tm_status">10dp</dimen>
+    <dimen name="tm_corner">3dp</dimen>
+    <dimen name="tm_row_comfortable">60dp</dimen>
+    <dimen name="tm_row_compact">44dp</dimen>
+    <dimen name="tm_row_table">36dp</dimen>
+</resources>

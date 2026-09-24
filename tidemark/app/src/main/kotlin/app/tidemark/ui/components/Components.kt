@@ -69,7 +69,6 @@ fun FloatingBottomPill(
     onSelect: (MainTab) -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
-    activityBadge: Int = 0,
 ): Unit = TODO("ui-theme package")
 
 /** Floating top pill: search, filter count, "next check in 4m" ticker; expands into filters and sort. */
@@ -141,6 +140,37 @@ fun RuleEditor(rule: Rule, kind: ValueKind, currency: String?, onChange: (Rule) 
 @Composable
 fun EmptyState(line: String, action: String?, onAction: () -> Unit, modifier: Modifier = Modifier): Unit = TODO("ui-theme package")
 
-/** The one exception to "motion only responds to actions": count to the new value once on trigger. */
+/**
+ * The one exception to "motion only responds to actions": count from [from] to [to] once (600 ms) when
+ * [animate]; otherwise (or under reduced motion, or when [from] is null) show [format] of [to] directly.
+ */
 @Composable
-fun CountingText(text: String, animate: Boolean, modifier: Modifier = Modifier): Unit = TODO("ui-theme package")
+fun CountingText(
+    from: Double?,
+    to: Double,
+    format: (Double) -> String,
+    animate: Boolean,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle? = null,
+): Unit = TODO("ui-theme package")
+
+/**
+ * A generic row on the numeric rail (Now strip, Activity, detail sources and check log): [leading] content
+ * on the left, [value] right-aligned to the rail (on a Signal plate when [accent]), [delta] in the change
+ * column. Bands alternate by [index].
+ */
+@Composable
+fun RailRow(
+    index: Int,
+    value: String,
+    modifier: Modifier = Modifier,
+    delta: String = "",
+    direction: Direction = Direction.NONE,
+    accent: Boolean = false,
+    height: Dp = 44.dp,
+    onClick: (() -> Unit)? = null,
+    leading: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+): Unit = TODO("ui-theme package")
+
+/** Draws the continuous 1dp Rule line at the rail x behind a whole list (apply to the LazyColumn's container). */
+fun Modifier.railLine(): Modifier = TODO("ui-theme package")

@@ -68,7 +68,24 @@ object TmDimens {
     val rowTable: Dp = 36.dp
     /** Width of the change column to the right of the rail. */
     val deltaColumn: Dp = 60.dp
+    /** Gap between a value's end and the rail line, and between the line and the change column. */
+    val railGap: Dp = 6.dp
     val strip: Dp = 3.dp
+}
+
+/** Rail geometry. Every screen and component aligns values with this; widgets use res/values/dimens_rail.xml. */
+object Rail {
+    /** x of the rail line from the start edge, for a container [width] wide. */
+    fun lineX(width: Dp): Dp = width - TmDimens.gutter - TmDimens.deltaColumn - TmDimens.railGap
+
+    /** Where a right-aligned value ends. */
+    fun valueEnd(width: Dp): Dp = lineX(width) - TmDimens.railGap
+
+    /** Where the change column starts. */
+    fun deltaStart(width: Dp): Dp = lineX(width) + TmDimens.railGap
+
+    /** Padding from the end edge to the value's end (end-aligned layouts). */
+    val valueEndPadding: Dp get() = TmDimens.gutter + TmDimens.deltaColumn + TmDimens.railGap * 2
 }
 
 /** 140 ms standard, 220 ms sheets, springy bottom bar. Respect reduced motion. */

@@ -12,8 +12,10 @@ class SecretStore(private val dao: SecretDao) {
     /** Store [value] under a new id and return the id. */
     suspend fun put(label: String, value: String): String = TODO("data package")
 
+    /** Upsert under a known id (secrets typed in the recorder arrive with fresh UUIDs). */
     suspend fun replace(id: String, label: String, value: String): Unit = TODO("data package")
 
+    /** Null on any failure (missing, key invalidated, bad tag); never throws. */
     suspend fun get(id: String): String? = TODO("data package")
 
     suspend fun delete(id: String): Unit = TODO("data package")

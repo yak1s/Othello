@@ -19,6 +19,7 @@
     <application
         android:name=".TidemarkApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -72,6 +73,15 @@
         <receiver
             android:name=".notify.NotificationActionReceiver"
             android:exported="false" />
+
+        <!-- Notification trampoline: acknowledges the alert and opens the buy page, without flashing the app. -->
+        <activity
+            android:name=".notify.OpenLinkActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <service
             android:name=".tile.AlertsTileService"

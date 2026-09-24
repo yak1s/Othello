@@ -21,7 +21,13 @@ class TidemarkApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        if (isCheckerProcess) return
+        if (isCheckerProcess) {
+            app.tidemark.checker.CheckerRuntime.init(this)
+            return
+        }
+        // The main process must never touch WebView (it would lock the shared WebView data directory and
+        // crash the checker's WebViews). Make any accidental use fail fast.
+        android.webkit.WebView.disableWebView()
         container.onAppStart()
     }
 }

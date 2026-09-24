@@ -60,7 +60,9 @@ data class FragilityReport(
 
 /** Warn before a recipe breaks: position-only targets, css-only targets, long waits, many steps. */
 object Fragility {
-    fun assess(recipe: Recipe, recentFailures: Int = 0): FragilityReport = TODO("recipe package")
+    /** [degradedSteps]: steps that only matched through a fallback locator on the last run (early warning). */
+    fun assess(recipe: Recipe, recentFailures: Int = 0, degradedSteps: List<Int> = emptyList()): FragilityReport =
+        TODO("recipe package")
 }
 
 /** A network response the recorder captured (fetch/XHR), trimmed. */
@@ -89,6 +91,9 @@ data class PromotionCandidate(
 /**
  * Promotion: while recording, find the tracked value in the page's own network requests. A
  * six-second browser session becomes a tiny, fast check, with the recipe kept as a backup.
+ * Only GET requests, or POSTs whose body is a GraphQL `query` (never a `mutation`), whose URL passes
+ * [UrlGuard]. Cookie, Authorization, Proxy-Authorization, x-csrf/x-xsrf and any header whose name contains
+ * token/key/auth/session are stripped (cookies come from the shared jar at check time).
  */
 object PromotionFinder {
     fun find(value: Double, responses: List<CapturedResponse>): List<PromotionCandidate> = TODO("recipe package")

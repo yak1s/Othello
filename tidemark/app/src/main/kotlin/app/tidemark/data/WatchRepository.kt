@@ -9,8 +9,10 @@ import app.tidemark.core.model.Recipe
 import app.tidemark.core.model.Rule
 import app.tidemark.core.model.SourceKind
 import app.tidemark.core.model.ValueKind
+import app.tidemark.browser.NewSecretDto
 import app.tidemark.core.util.Clock
 import app.tidemark.data.db.TidemarkDatabase
+import kotlinx.coroutines.flow.SharedFlow
 
 data class SourceDraft(
     val kind: SourceKind,
@@ -44,8 +46,36 @@ data class WatchDraft(
     val previewInStock: Boolean? = null,
 )
 
-/** Multi-table user commands. Reads go straight to the DAOs (Flows). */
-class WatchRepository(private val db: TidemarkDatabase, private val clock: Clock) {
+/** What changed, so the engine (reschedule), widgets, the tile and the shade board can react. */
+sealed interface RepoChange {
+    data class WatchesChanged(val ids: Set<Long>) : RepoChange
+    /** Alerts were acknowledged (tile count, Now strip, widgets' accents). */
+    data object AlertsChanged : RepoChange
+    /** The user opened the app: widgets drop their "moved since you last looked" accents. */
+    data object AppOpened : RepoChange
+    /** Watches stopped (archived or deleted): cancel their notifications. */
+    data class Stopped(val ids: Set<Long>) : RepoChange
+    /** Schedule-relevant change (created, resumed, snoozed, profile changed): Engine.reschedule(). */
+    data object ScheduleChanged : RepoChange
+}
+
+/**
+ * Multi-table user commands. Reads go straight to the DAOs (Flows). Every command emits a [RepoChange];
+ * Engine, WidgetUpdater and Notifier subscribe to [changes] in their onAppStart/ensureChannels.
+ *
+ * Rules that keep alerts honest: create, setRule and setThreshold reset the arm state to `ArmState()`
+ * (unseeded) and clear lastAlertKey, so the first reading under a new rule only seeds. create, resume,
+ * unsnooze and restore set nextCheckAt = now. snooze never stores WatchStatus.SNOOZED (it's derived from
+ * snoozedUntil/snoozeUntilChange, see core effectiveStatus) and sets nextCheckAt = snoozedUntil.
+ */
+class WatchRepository(
+    private val db: TidemarkDatabase,
+    private val clock: Clock,
+    private val secrets: SecretStore,
+    private val settings: SettingsStore,
+) {
+    val changes: SharedFlow<RepoChange> get() = TODO("data package")
+
     suspend fun create(draft: WatchDraft): Long = TODO("data package")
     suspend fun duplicate(watchId: Long): Long = TODO("data package")
     suspend fun rename(watchId: Long, name: String): Unit = TODO("data package")
@@ -67,6 +97,9 @@ class WatchRepository(private val db: TidemarkDatabase, private val clock: Clock
     suspend fun stop(watchIds: List<Long>, keepHistory: Boolean): Unit = TODO("data package")
     suspend fun reorder(orderedIds: List<Long>): Unit = TODO("data package")
 
+    /** Bring stopped (archived) watches back: unarchived, ARMED, due now. */
+    suspend fun restore(watchIds: List<Long>): Unit = TODO("data package")
+
     suspend fun acknowledgeAlert(alertId: Long): Unit = TODO("data package")
     suspend fun acknowledgeWatch(watchId: Long): Unit = TODO("data package")
 
@@ -84,8 +117,23 @@ class WatchRepository(private val db: TidemarkDatabase, private val clock: Clock
     suspend fun updateSourceSpec(sourceId: Long, spec: ExtractionSpec, method: FetchMethod? = null): Unit = TODO("data package")
     suspend fun setRobotsOverride(sourceId: Long, allow: Boolean): Unit = TODO("data package")
 
-    /** Save a recorded recipe (after the visible replay was confirmed) and attach it to [sourceId] if given. */
-    suspend fun saveRecipe(recipe: Recipe, name: String, verified: Boolean, sourceId: Long? = null): Long = TODO("data package")
+    /**
+     * Save a recorded recipe (after the visible replay was confirmed) and attach it to [sourceId] if given.
+     * [newSecrets] typed while recording are stored first (SecretStore.replace with their ids).
+     */
+    suspend fun saveRecipe(
+        recipe: Recipe,
+        name: String,
+        verified: Boolean,
+        sourceId: Long? = null,
+        newSecrets: List<NewSecretDto> = emptyList(),
+    ): Long = TODO("data package")
+
+    /**
+     * "Reads $20 now (was $249). Looks right?" → yes: store the source's last rejected reading as confirmed
+     * (watch value, history row), clear the reject streak and re-arm the watch.
+     */
+    suspend fun acceptReading(sourceId: Long): Unit = TODO("data package")
 
     /** Promote a source to an API tap found by the recorder; the recipe stays as backup. */
     suspend fun promoteSource(sourceId: Long, tap: ApiTap, tapUrl: String): Unit = TODO("data package")

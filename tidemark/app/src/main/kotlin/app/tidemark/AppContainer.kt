@@ -30,7 +30,7 @@ class AppContainer(val context: Context) {
     val secrets: SecretStore by lazy { SecretStore(db.secrets()) }
     val snapshots: Snapshots by lazy { Snapshots(context) }
     val adapters: AdapterRegistry by lazy { AdapterLoader.load(context) }
-    val watches: WatchRepository by lazy { WatchRepository(db, clock) }
+    val watches: WatchRepository by lazy { WatchRepository(db, clock, secrets, settings) }
     val exportImport: ExportImport by lazy { ExportImport(db, clock) }
     val checker: CheckerClient by lazy { CheckerClient(context) }
     val notifier: Notifier by lazy { Notifier(context, this) }

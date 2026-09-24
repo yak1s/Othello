@@ -66,6 +66,10 @@ data class Reading(
     val readVia: ReadVia,
     /** Up to ~240 chars of the page text the value was read from. Never contains secrets. */
     val evidence: String? = null,
+    /** FLIGHT: the ISO date (yyyy-MM-dd) this fare is for (the cheapest date of a flexible window). */
+    val date: String? = null,
+    /** The variant this reading is for ("UK 10", "Blue"), when the page has variants and one was chosen. */
+    val variant: String? = null,
 ) {
     /** The single primitive the watch's kind cares about, as a display-independent string. */
     fun primaryKey(): String = when (kind) {
@@ -85,4 +89,27 @@ data class HistoryPoint(
     val inStock: Boolean? = null,
     val textHash: String? = null,
     val keywordPresent: Boolean? = null,
+)
+
+/**
+ * Hard caps so readings stay small in IPC messages (binder limit) and Room rows (CursorWindow limit).
+ * Every Reading that leaves an extractor must be [bounded].
+ */
+object ReadingLimits {
+    const val TEXT = 4_000
+    const val EVIDENCE = 240
+    const val ITEMS = 200
+    const val TITLE = 300
+    const val URL = 2_000
+}
+
+/** A copy of this reading truncated to [ReadingLimits]. */
+fun Reading.bounded(): Reading = copy(
+    text = text?.take(ReadingLimits.TEXT),
+    evidence = evidence?.take(ReadingLimits.EVIDENCE),
+    title = title?.take(ReadingLimits.TITLE),
+    imageUrl = imageUrl?.take(ReadingLimits.URL),
+    items = items.take(ReadingLimits.ITEMS).map {
+        it.copy(title = it.title.take(ReadingLimits.TITLE), url = it.url?.take(ReadingLimits.URL))
+    },
 )

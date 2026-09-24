@@ -9,3 +9,9 @@ val TidemarkJson: Json = Json {
     explicitNulls = false
     classDiscriminator = "type"
 }
+
+/**
+ * Json for Room columns and export files: identical to [TidemarkJson] but writes defaults, so a later change
+ * to a default value never silently changes the meaning of stored rules, ladders or exports.
+ */
+val TidemarkStorageJson: Json = Json(TidemarkJson) { encodeDefaults = true }

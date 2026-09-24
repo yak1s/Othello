@@ -45,7 +45,7 @@ object AlertCopy {
 
     /**
      * DROP: title "$179 ↓ 28%", text "Sony WH-1000XM5 · amazon · was $249, lowest since Nov".
-     * RESTOCK: title "In stock — Ooni Koda 16", text "ooni · $399".
+     * RESTOCK: title "In stock — Ooni Koda 16" ("In stock, UK 10 — …" when current.variant is set), text "ooni · $399".
      * NEW_ITEMS: title "3 new — Leica M6", text first item titles.
      */
     fun forAlert(
@@ -54,8 +54,10 @@ object AlertCopy {
         storeName: String,
         current: Reading,
         previous: Reading?,
-        allTimeLowSinceMillis: Long?,
+        /** From Stats.lowestSince: the last time it was this low ("lowest since Nov"); null to omit. */
+        lowestSinceMillis: Long?,
         newItemTitles: List<String> = emptyList(),
         locale: Locale = Locale.getDefault(),
+        zone: java.time.ZoneId = java.time.ZoneOffset.UTC,
     ): Copy = TODO("format package")
 }

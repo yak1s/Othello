@@ -28,14 +28,19 @@ data class Candidate(
 /** An element near where the chosen element used to be that looks like the value. */
 data class HealCandidate(val fingerprint: ElementFingerprint, val valueText: String, val score: Double)
 
+/** One purchasable variant found on the page (size, colour), so the add sheet can offer a chooser. */
+data class VariantInfo(val name: String, val inStock: Boolean?, val price: Double?, val currency: String?)
+
 /** The result of reading one fetched document. */
 sealed interface ExtractionResult {
     val signals: PageSignals
 
+    /** [reading] must be [app.tidemark.core.model.bounded]. At most 20 [candidates] and 50 [variants]. */
     data class Found(
         val reading: Reading,
         override val signals: PageSignals,
         val candidates: List<Candidate> = emptyList(),
+        val variants: List<VariantInfo> = emptyList(),
     ) : ExtractionResult
 
     /** The chosen element is gone. [healCandidates] are ranked, best first. Never reported as "unchanged". */
@@ -141,6 +146,9 @@ object Fingerprints {
  * one candidate is strong and it is confirmed over two checks.
  */
 object SelfHealer {
+    /** A candidate at or above this score is "strong". The pipeline adopts only when exactly one is strong. */
+    const val STRONG_SCORE = 0.6
+
     fun candidates(document: org.jsoup.nodes.Document, fp: ElementFingerprint, kind: ValueKind): List<HealCandidate> =
         TODO("extract package")
 }

@@ -100,8 +100,12 @@ The layout signature. Never break it.
 
 ## List rows
 
-Three densities (Settings > Look): Comfortable 60dp, Compact 44dp (default), Table 36dp. 80 watches
-must be scannable in about one and a half screens in Table.
+Three densities (Settings > Look): Comfortable 60dp, Compact 44dp (default), Table 36dp.
+
+(Decision: the spec's "80 watches in about one and a half screens" isn't reachable with readable rows:
+at 36dp a 390×844 phone shows about 20 rows, so 80 watches take about 4 screens in Table. Table rows
+are the one place touch targets are 36dp instead of 44dp, because the whole row is the target and the
+bands make its edges clear. Collections and filters are the answer for very long lists.)
 
 ```
 | strip 3dp | 13dp | status 10dp | 10dp | name (flex, 1 line)         | value ⟂ | 6 | Δ 60dp | 16dp |
@@ -113,7 +117,9 @@ must be scannable in about one and a half screens in Table.
   the name.
 - **Table**: departure-board columns: name in denseStrong, store (72dp, dense muted), next check
   (40dp, dense muted), value in rowValueDense, change.
-- Change column: drops in Ink, rises in Adverse. Never Signal.
+- Change column: price drops in Ink, price rises in Adverse. Never Signal. Generic numbers
+  ("3 left", ticket counts) are neither good nor bad news: Ink both ways, and crossing a number
+  threshold is a plain change alert, never accented.
 - A value that moved (drop/restock/new items) and hasn't been acknowledged sits on a Signal plate.
 - A check in flight shows a 2dp progress line along the row's bottom edge in Ink at 40%, never a
   shimmer or skeleton.
@@ -136,7 +142,9 @@ must be scannable in about one and a half screens in Table.
 - **Bottom pill**: 56dp high, fully rounded, 16dp above the navigation inset. Tabs Watches /
   Activity / Settings as text (button style), with a fused round + button (56dp circle attached at
   the pill's end, same fill). Selected tab: full-opacity label with a 2dp × 16dp bar under it;
-  others at 60%. Hides on scroll down, returns on scroll up (spring, damping 0.7, stiffness 400).
+  others at 60%. No badges or counts on tabs (the spec bans engagement tricks; the unread count lives
+  only on the quick-settings tile). Hides on scroll down, returns on scroll up (spring, damping 0.7,
+  stiffness 400). While rows are multi-selected, the bulk-edit bar takes its place, same shape.
 - **Top pill**: 44dp high, fully rounded: search field, filter count ("2 filters"), and the ticker
   ("next check in 4m"). Tapping expands it into filters (collection, status, kind) and sort
   (recently moved, biggest drop, next check, name, health).
@@ -159,7 +167,10 @@ must be scannable in about one and a half screens in Table.
 - **Settings**: plain rows. "How often to check", not "polling interval".
 - **Add sheet**: starts fetching immediately; title, image, price and stock state appear as they
   arrive; one preselected condition; one primary button "Track it" (becomes "Tracking"); advanced
-  options behind a single collapsed "More" row.
+  options behind a single collapsed "More" row. When the page has variants, a one-line chooser
+  ("Size: UK 10") sits above the button. Flights get a compact form instead of a URL: from, to,
+  depart, return (optional), flexible ± days, cabin, stops, adults — "fare drops" preselected. A shared
+  Google Flights link fills the form.
 
 ## Charts
 
@@ -215,6 +226,10 @@ Sony WH-1000XM5 · amazon · was $249, lowest since Nov
 - Restock alerts lead with the state ("In stock — Ooni Koda 16") and their main button opens the
   buy page directly.
 - Accent color (`setColor`) only on the Price drops & restocks channel.
+- Typography: alerts use a custom content view (DecoratedCustomViewStyle) so the value in the title is
+  Archivo Expanded with tabular digits, with the standard title/text kept for the lock screen,
+  accessibility and wearables. The Sprint countdown uses the standard template with a progress style
+  so Android 16 can show it as a Live Update. The shade board reuses the Board widget's rows.
 
 ## Copy
 

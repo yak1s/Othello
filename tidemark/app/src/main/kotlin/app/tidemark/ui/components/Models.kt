@@ -30,18 +30,32 @@ data class WatchRowModel(
     val checking: Boolean,
     /** Run the one-time trigger motion (count to the new value, flash, one haptic tap). */
     val flash: Boolean,
-    /** Secondary line in Comfortable ("amazon · checks in 12m"); Table shows it as columns. */
+    /** Secondary line in Comfortable ("amazon, next check 12m"). No dot separators in the app's own UI. */
     val meta: String?,
     /** Full screen-reader label ("Sony headphones, price dropped 28 percent, now 179 dollars"). */
     val spoken: String,
+    /** Table density's own column ("12m"); Compact/Comfortable use [meta]. */
+    val nextCheckText: String? = null,
+    /** For the one-time count to the new value when [flash] is set. */
+    val fromValue: Double? = null,
+    val toValue: Double? = null,
+    val currency: String? = null,
 )
 
 @Immutable
-data class NowItem(val alertId: Long, val watchId: Long, val title: String, val valueText: String, val accent: Boolean)
+data class NowItem(
+    val alertId: Long,
+    val watchId: Long,
+    val title: String,
+    val valueText: String,
+    val accent: Boolean,
+    val deltaText: String = "",
+    val direction: Direction = Direction.NONE,
+)
 
 @Immutable
 data class ChartPoint(val at: Long, val value: Double)
 
-/** An alert drawn on the chart; tapping explains why it fired. */
+/** An alert drawn on the chart; tapping explains why it fired. [accent] = a drop/restock (Signal tick), else Ink. */
 @Immutable
-data class ChartMark(val alertId: Long, val at: Long, val value: Double, val label: String)
+data class ChartMark(val alertId: Long, val at: Long, val value: Double, val label: String, val accent: Boolean = true)

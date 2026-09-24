@@ -49,8 +49,9 @@ sealed interface Step {
     @Serializable @SerialName("click")
     data class Click(val target: Target) : Step
 
+    /** [pressEnter] submits the field (zip/search boxes); the interlock then also scans the form's submit button. */
     @Serializable @SerialName("type")
-    data class Type(val target: Target, val value: ValueSource) : Step
+    data class Type(val target: Target, val value: ValueSource, val pressEnter: Boolean = false) : Step
 
     @Serializable @SerialName("select")
     data class Select(val target: Target, val option: String) : Step
@@ -88,4 +89,6 @@ data class Recipe(
     val steps: List<Step>,
     /** Words the safety interlock matched and the user overrode by typing "understood". Shown on the watch forever. */
     val overriddenWords: List<String> = emptyList(),
+    /** LOGIN recipes: what a logged-out page looks like on this site (text, URL fragment or target). */
+    val loggedOutWhen: Step.Assert? = null,
 )

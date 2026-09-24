@@ -7,6 +7,7 @@ import app.tidemark.core.model.ElementFingerprint
 import app.tidemark.core.model.ExtractionSpec
 import app.tidemark.core.model.Reading
 import app.tidemark.core.model.Recipe
+import app.tidemark.core.model.RecipeKind
 import app.tidemark.core.model.Step
 import app.tidemark.core.model.TidemarkJson
 import app.tidemark.core.model.ValueKind
@@ -52,10 +53,24 @@ data class BrowserArgs(
     val failureScreenshotPath: String? = null,
     /** SNAPSHOT: the file to show. */
     val snapshotPath: String? = null,
-    /** Secret values for REPLAY, keyed by id. In memory only. */
-    val secrets: Map<String, String> = emptyMap(),
+    /**
+     * REPLAY / REPAIR_STEP: secrets are never put in an Intent. The main process first sends them to the
+     * checker process with Ipc.MSG_PUT_SECRETS under this token; the browser (same process) takes them from there.
+     */
+    val secretsToken: String? = null,
+    /** RECORD: a value recipe (default) or a LOGIN session recipe for [url]'s site. */
+    val recordKind: RecipeKind = RecipeKind.VALUE,
 ) {
     override fun toString(): String = "BrowserArgs($mode, $url, watch=$watchId, source=$sourceId)"
+}
+
+/**
+ * A secret typed while recording. The recipe's ValueSource.Secret uses [secretId] (a fresh UUID); the main
+ * process stores [value] with SecretStore.replace(secretId, label, value) before saving the recipe.
+ */
+@Serializable
+data class NewSecretDto(val secretId: String, val label: String, val value: String) {
+    override fun toString(): String = "NewSecretDto($secretId, $label)"
 }
 
 @Serializable
@@ -81,7 +96,12 @@ data class BrowserResult(
     val repairedStep: Step? = null,
     val repairedStepIndex: Int? = null,
     val finalUrl: String? = null,
-)
+    /** RECORD / REPAIR_STEP: secrets typed during this session. Never logged. */
+    val newSecrets: List<NewSecretDto> = emptyList(),
+) {
+    override fun toString(): String =
+        "BrowserResult($mode, url=$watchUrl, recipe=${recipe?.steps?.size} steps, confirmed=$replayConfirmed, secrets=${newSecrets.size})"
+}
 
 @Serializable
 data class PromotionCandidateDto(

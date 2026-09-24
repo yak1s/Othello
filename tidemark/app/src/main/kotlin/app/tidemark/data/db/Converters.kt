@@ -10,11 +10,11 @@ import app.tidemark.core.model.LadderState
 import app.tidemark.core.model.Reading
 import app.tidemark.core.model.Recipe
 import app.tidemark.core.model.Rule
-import app.tidemark.core.model.TidemarkJson
+import app.tidemark.core.model.TidemarkStorageJson as TidemarkJson
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 
-/** JSON columns for core model types. Enums are stored by name (Room default). */
+/** JSON columns for core model types (TidemarkStorageJson: defaults written). Enums are stored by name (Room default). */
 class Converters {
     @TypeConverter fun ruleToJson(v: Rule?): String? = v?.let { TidemarkJson.encodeToString(Rule.serializer(), it) }
     @TypeConverter fun ruleFromJson(v: String?): Rule? = v?.let { TidemarkJson.decodeFromString(Rule.serializer(), it) }
