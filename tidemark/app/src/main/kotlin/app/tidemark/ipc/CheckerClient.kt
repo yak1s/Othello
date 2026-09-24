@@ -19,4 +19,13 @@ class CheckerClient(private val context: Context) {
 
     /** True when the checker process answers within [timeoutMs]. */
     suspend fun ping(timeoutMs: Long = 3_000): Boolean = TODO("checker package")
+
+    /** Hand decrypted secrets to the checker process for a browser REPLAY/REPAIR; returns the token for BrowserArgs.secretsToken. */
+    suspend fun putSecrets(secrets: Map<String, String>): String = TODO("checker package")
+
+    /** Sign out of and reset one site (cookies + web storage), or every site when [host] is null. */
+    suspend fun clearSiteData(host: String?): Boolean = TODO("checker package")
+
+    /** Site adapter files changed (Settings > Add site file): tell the checker to reload them. */
+    suspend fun reloadAdapters(): Unit = TODO("checker package")
 }

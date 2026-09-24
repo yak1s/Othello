@@ -28,6 +28,11 @@ data class SourceDraft(
     val recipeId: Long? = null,
     val robotsDisallowed: Boolean = false,
     val robotsOverride: Boolean = false,
+    /** Hotels: "Dates move with time" (see SourceEntity.urlTemplate / urlDates). */
+    val urlTemplate: String? = null,
+    val urlDates: List<String> = emptyList(),
+    /** The ladder is built with core LadderPolicy.initial(kind, method, apiTap != null, recipeId != null, hasFareKey). */
+    val hasFareKey: Boolean = false,
 )
 
 data class WatchDraft(
