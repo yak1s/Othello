@@ -31,6 +31,14 @@ abstract class TidemarkDatabase : RoomDatabase() {
     abstract fun fareDates(): FareDateDao
     abstract fun transactions(): TransactionsDao
 
+    // One extra DAO per package, so packages can add queries without editing shared files.
+    abstract fun dataExtra(): app.tidemark.data.DataExtraDao
+    abstract fun engineDao(): app.tidemark.engine.EngineDao
+    abstract fun notifyDao(): app.tidemark.notify.NotifyDao
+    abstract fun widgetQueries(): app.tidemark.widget.WidgetQueriesDao
+    abstract fun screensDao(): app.tidemark.ui.ScreensDao
+    abstract fun appUiDao(): app.tidemark.ui.AppUiDao
+
     companion object {
         /** Main process only. The checker process never opens the database. */
         fun create(context: Context): TidemarkDatabase =
