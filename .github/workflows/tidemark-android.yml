@@ -1,0 +1,25 @@
+name: Tidemark Android
+
+on:
+  push:
+    branches: [claude/android-app-setup-guide-ngexeu]
+    paths: ['tidemark/**', '.github/workflows/tidemark-android.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: tidemark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print latest Google Maven versions
+        run: |
+          for a in com/android/tools/build/gradle androidx/compose/compose-bom androidx/room/room-runtime androidx/work/work-runtime androidx/work/work-multiprocess androidx/activity/activity-compose androidx/lifecycle/lifecycle-runtime-compose androidx/navigation/navigation-compose androidx/core/core-ktx androidx/webkit/webkit androidx/datastore/datastore-preferences androidx/compose/material3/material3 androidx/compose/ui/ui androidx/sqlite/sqlite androidx/test/core androidx/test/ext/junit androidx/profileinstaller/profileinstaller androidx/core/core-splashscreen com/android/tools/build/aapt2 ; do
+            v=$(curl -s "https://dl.google.com/dl/android/maven2/$a/maven-metadata.xml" | grep -o '<version>[^<]*</version>' | sed 's/<[^>]*>//g' | grep -viE 'alpha|beta|rc|dev' | tail -6 | tr '\n' ' ')
+            echo "$a => $v"
+          done
+      - name: Android SDK on runner
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"; ls $ANDROID_HOME; ls $ANDROID_HOME/platforms; ls $ANDROID_HOME/build-tools; java -version 2>&1
